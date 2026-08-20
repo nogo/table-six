@@ -12,6 +12,8 @@ export const store = new Store({
   week: /** @type {any} */ (null),
   /** The inventory, most recently planned first — the suggestion order. */
   items: /** @type {any[]} */ ([]),
+  /** The last request did not arrive. Shown, never acted on. */
+  offline: false,
 });
 AurilElement.store = store;
 
@@ -21,12 +23,20 @@ AurilElement.store = store;
  * @param {string} [start] ISO Monday
  */
 export async function loadWeek(start = store.state.weekStart) {
-  const week = await getWeek(start);
-  if (store.state.weekStart === week.start) store.set({ week }); // a newer step wins
+  try {
+    const week = await getWeek(start);
+    if (store.state.weekStart === week.start) store.set({ week, offline: false }); // a newer step wins
+  } catch {
+    store.set({ offline: true }); // what is on screen stays on screen
+  }
 }
 
 export async function loadItems() {
-  store.set({ items: await getItems() });
+  try {
+    store.set({ items: await getItems(), offline: false });
+  } catch {
+    store.set({ offline: true });
+  }
 }
 
 export const router = new Router()
@@ -61,3 +71,6 @@ import { startSync } from './sync.js';
 
 router.start();
 startSync();
+
+// The shell comes off the home screen; the plan always comes from the server.
+navigator.serviceWorker?.register('/sw.js');

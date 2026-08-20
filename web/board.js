@@ -7,6 +7,7 @@ import { WEEKDAYS, addDays, dayOfMonth, range, today, weekStart } from './dates.
 class WeekBoard extends AurilElement {
   onConnect() {
     this.watch((s) => s.week, () => this.update());
+    this.watch((s) => s.offline, () => this.update());
     this.watch((s) => s.weekStart, (start) => loadWeek(start));
 
     this.delegate('click', '.day', (_, el) => router.go(`/tag/${el.getAttribute('data-date')}`));
@@ -38,14 +39,17 @@ class WeekBoard extends AurilElement {
   }
 
   render() {
-    const { week } = store.state;
-    if (!week) return html`<main class="column"></main>`;
+    const { week, offline } = store.state;
+    if (!week) {
+      return html`<main class="column">${offline && html`<p class="hint">Keine Verbindung. Sobald das Netz da ist, ist die Woche da.</p>`}</main>`;
+    }
     return html`
       <header class="head column">
         <h1 class="caps">KW ${week.week} <span class="soft num">${range(week.start, week.end)}</span></h1>
         <button class="step" data-step="-1" aria-label="Woche zurück">‹</button>
         <button class="step" data-step="1" aria-label="Woche vor">›</button>
       </header>
+      ${offline && html`<p class="column hint">offline — die Woche kann veraltet sein</p>`}
       <main class="column">${week.days.map((day) => this.#row(day))}</main>
       <nav class="bar">
         <div class="column">

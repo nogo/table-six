@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Table Six">
+  <rect width="512" height="512" fill="#1a1815"/>
+  <g fill="#f4efe6">
+    <rect x="112" y="150" width="288" height="30" rx="15"/>
+    <rect x="112" y="241" width="216" height="30" rx="15"/>
+  </g>
+  <rect x="112" y="332" width="264" height="30" rx="15" fill="#d9a441"/>
+</svg>
