@@ -1,0 +1,245 @@
+/* The slate a restaurant writes the menu on: one colour, no boxes, type
+   carries the order. Sizes in px on purpose — the scale is fixed, the same at
+   every width (docs/ui.md). */
+
+:root {
+  --ground: #1a1815;
+  --surface: #221f1b;
+  --line: #35302a;
+  --bone: #f4efe6;
+  --soft: #9c9186;
+  --brass: #d9a441;
+
+  --column: 30rem;
+  --gutter: 20px;
+
+  color-scheme: dark;
+  font-family: system-ui, sans-serif;
+  font-size: 17px;
+  font-stretch: 87.5%; /* a bonus where a variable system font can do it */
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--ground);
+  color: var(--bone);
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+button, input {
+  font: inherit;
+  font-stretch: inherit;
+  color: inherit;
+  background: none;
+  border: 0;
+  border-radius: 0;
+  appearance: none;
+}
+button { cursor: pointer; text-align: left; }
+:focus-visible { outline: 2px solid var(--brass); outline-offset: -2px; }
+
+/* The screens keep the phone's column at every width; only Bestand takes more. */
+.column {
+  width: 100%;
+  max-width: var(--column);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+/* ── caps labels ────────────────────────────────────────────────────────── */
+
+.caps { text-transform: uppercase; letter-spacing: .08em; font-weight: 600; }
+.effort { font-size: 12px; font-weight: 500; letter-spacing: .1em; text-transform: uppercase; color: var(--soft); }
+.soft { color: var(--soft); }
+.num { font-variant-numeric: tabular-nums; }
+
+/* ── screen frame ───────────────────────────────────────────────────────── */
+
+.head {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 56px;
+  padding-top: env(safe-area-inset-top);
+}
+.head h1 { font-size: 15px; margin: 0; flex: 1; }
+
+main { flex: 1; }
+
+.bar {
+  position: sticky;
+  bottom: 0;
+  background: var(--ground);
+  border-top: 1px solid var(--line);
+  padding-bottom: env(safe-area-inset-bottom);
+  display: flex;
+  gap: 8px;
+}
+.bar button, .bar a {
+  flex: 1;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--soft);
+  text-decoration: none;
+  font-size: 15px;
+  letter-spacing: .04em;
+}
+.bar button:active, .bar a:active { background: var(--surface); color: var(--bone); }
+
+/* ── week board ─────────────────────────────────────────────────────────── */
+
+.step {
+  width: 48px;
+  height: 48px;
+  display: grid;
+  place-items: center;
+  font-size: 20px;
+  color: var(--soft);
+}
+.step:active { background: var(--surface); color: var(--bone); }
+
+.day {
+  display: block;
+  width: 100%;
+  min-height: 64px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
+}
+.day:last-child { border-bottom: 1px solid var(--line); }
+.day:active { background: var(--surface); }
+
+.day-head { display: flex; align-items: baseline; gap: 8px; font-size: 15px; }
+.day-head .name { font-weight: 600; text-transform: uppercase; letter-spacing: .08em; }
+.day-head .date { color: var(--soft); font-variant-numeric: tabular-nums; }
+.day-head .grow { flex: 1; }
+.day-head .mark { font-size: 13px; }
+
+.day.today .name, .day.today .date { color: var(--brass); }
+.day .warn { color: var(--brass); }
+
+.plate {
+  margin: 2px 0 0;
+  font-size: 17px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.plate.empty { color: var(--soft); }
+
+/* ── day focus ──────────────────────────────────────────────────────────── */
+
+.focus-head { padding: 4px 0 12px; }
+.focus-head .name { font-size: 24px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.focus-head .date { font-size: 24px; color: var(--soft); font-variant-numeric: tabular-nums; margin-left: 8px; }
+
+/* The effort level of a weekday, tapped to cycle — recurring, not this date. */
+.level {
+  min-height: 32px;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.level:active { color: var(--bone); }
+
+.row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-height: 56px;
+  font-size: 19px;
+  border-top: 1px solid var(--line);
+}
+.row:active { background: var(--surface); }
+.row .grow { flex: 1; }
+.row .x, .row .plus {
+  width: 48px;
+  height: 48px;
+  margin-right: -12px;
+  display: grid;
+  place-items: center;
+  color: var(--soft);
+  font-size: 17px;
+}
+.row .x:active { color: var(--brass); }
+.row .reason { font-size: 13px; color: var(--soft); }
+
+.section {
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--soft);
+  margin: 24px 0 4px;
+}
+
+.hint { color: var(--soft); font-size: 15px; padding: 12px 0; }
+
+/* Search sits at the bottom: it is the field for creating, too. */
+.search {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 48px;
+  background: var(--surface);
+  padding: 0 12px;
+}
+.search input { flex: 1; min-height: 48px; background: none; }
+.search input::placeholder { color: var(--soft); }
+
+.done {
+  width: 100%;
+  min-height: 48px;
+  text-align: center;
+  color: var(--brass);
+  letter-spacing: .06em;
+}
+.done:active { background: var(--surface); }
+
+/* ── Bestand ────────────────────────────────────────────────────────────── */
+
+.filters { display: flex; gap: 8px; padding: 4px 0 8px; }
+.filters button {
+  min-height: 40px;
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--soft);
+}
+.filters button[aria-pressed="true"] { color: var(--brass); }
+
+.item-controls { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 0 12px; }
+.item-controls button {
+  min-height: 40px;
+  padding: 0 10px;
+  font-size: 13px;
+  color: var(--soft);
+  background: var(--surface);
+}
+.item-controls button:active { color: var(--bone); }
+.item-controls .danger:active { color: var(--brass); }
+.item-controls input { flex: 1; min-width: 8rem; background: var(--surface); padding: 0 10px; min-height: 40px; }
+
+.stack { padding-bottom: 24px; }
+
+/* Bestand is the one view that takes the width: above the breakpoint the
+   controls sit inline with the row instead of under it. */
+@media (min-width: 48rem) {
+  .wide { max-width: 60rem; }
+  .wide .item { display: flex; align-items: center; gap: 16px; }
+  .wide .item .row { border-top: 0; flex: 1; }
+  .wide .item-controls { padding: 0; flex-wrap: nowrap; }
+  .wide .item { border-top: 1px solid var(--line); }
+}
+
+/* The screen elements are frames, not boxes: their children lay out in body. */
+app-screen, week-board, day-focus, item-stock { display: contents; }
