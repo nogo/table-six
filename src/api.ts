@@ -15,6 +15,7 @@ import {
   type Item,
 } from './db.ts';
 import { isIsoDate, today, weekStart } from './dates.ts';
+import { publish } from './sync.ts';
 import { buildWeek } from './week.ts';
 
 const bad = (message: string) => Response.json({ error: message }, { status: 400 });
@@ -66,7 +67,9 @@ export const routes = {
       if (!isEffort(effort)) return bad(`effort must be one of ${EFFORT_ORDER.join(', ')}`);
       const existing = listItems().find((item) => item.name.toLowerCase() === name.toLowerCase());
       if (existing) return Response.json(existing);
-      return Response.json(createItem(name, fields.vegetarian === true, effort), { status: 201 });
+      const item = createItem(name, fields.vegetarian === true, effort);
+      publish('items');
+      return Response.json(item, { status: 201 });
     },
   },
 
@@ -88,7 +91,9 @@ export const routes = {
       );
       if (clash) return Response.json({ error: 'name exists', item: clash }, { status: 409 });
 
-      return Response.json(updateItem(item.id, name, vegetarian, effort) as Item);
+      const updated = updateItem(item.id, name, vegetarian, effort) as Item;
+      publish('items'); // a name travels onto every board it is planned on
+      return Response.json(updated);
     },
 
     // Deleting an item takes it off every evening it was on. That is the point:
@@ -97,6 +102,7 @@ export const routes = {
       const id = asId(request.params.id);
       if (id === null || !getItem(id)) return missing();
       deleteItem(id);
+      publish('items');
       return done();
     },
   },
@@ -108,7 +114,9 @@ export const routes = {
       const target = asId(String((await body(request)).into));
       if (source === null || target === null || source === target) return bad('into must be another item');
       if (!getItem(source) || !getItem(target)) return missing();
-      return Response.json(mergeItems(source, target) as Item);
+      const merged = mergeItems(source, target) as Item;
+      publish('items');
+      return Response.json(merged);
     },
   },
 
@@ -120,6 +128,7 @@ export const routes = {
       if (!isIsoDate(date)) return bad('date must be YYYY-MM-DD');
       if (id === null || !getItem(id)) return missing();
       addToPlan(date, id);
+      publish(`week:${weekStart(date)}`);
       return done();
     },
 
@@ -128,6 +137,7 @@ export const routes = {
       const id = asId(itemId);
       if (!isIsoDate(date) || id === null) return bad('date must be YYYY-MM-DD');
       removeFromPlan(date, id);
+      publish(`week:${weekStart(date)}`);
       return done();
     },
   },
@@ -141,6 +151,7 @@ export const routes = {
       if (!Number.isInteger(weekday) || weekday < 1 || weekday > 7) return bad('weekday must be 1–7');
       if (!isEffort(effort)) return bad(`effort must be one of ${EFFORT_ORDER.join(', ')}`);
       setWeekdayEffort(weekday, effort);
+      publish('weeks'); // the level recurs, so every week on every screen moved
       return done();
     },
   },

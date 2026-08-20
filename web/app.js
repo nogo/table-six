@@ -57,5 +57,7 @@ customElements.define('app-screen', AppScreen);
 import './board.js';
 import './day.js';
 import './bestand.js';
+import { startSync } from './sync.js';
 
 router.start();
+startSync();
