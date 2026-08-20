@@ -61,4 +61,5 @@ test/     bun test, real behaviour, not smoke
 ```
 
 Start with `bun src/server.ts` (port 4173), open it on the phone over the LAN.
-Nothing under `src/` and `web/` exists yet — that is the shape it gets.
+`bun test` runs the real behaviour; the database lives in `data/` and is not
+in git.
