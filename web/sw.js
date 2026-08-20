@@ -10,7 +10,7 @@ const SHELL = [
   '/api.js',
   '/board.js',
   '/day.js',
-  '/bestand.js',
+  '/inventory.js',
   '/dates.js',
   '/sync.js',
   '/auril/index.js',
@@ -43,7 +43,7 @@ self.addEventListener('fetch', (event) => {
   const shellOnly = event.request.method === 'GET' && url.origin === location.origin && !url.pathname.startsWith('/api/');
   if (!shellOnly) return; // the API and the socket never go through the cache
 
-  // A navigation to /tag/… or /bestand is the shell; the router takes it from there.
+  // A navigation to /day/… or /inventory is the shell; the router takes it from there.
   const key = event.request.mode === 'navigate' ? '/' : event.request;
 
   event.respondWith(

@@ -41,11 +41,11 @@ export async function loadItems() {
 
 export const router = new Router()
   .route('/', () => store.set({ route: { name: 'board', params: {} } }))
-  .route('/tag/:date', (params) => store.set({
+  .route('/day/:date', (params) => store.set({
     route: { name: 'day', params },
     weekStart: weekStart(params.date ?? today()), // going back lands on the right week
   }))
-  .route('/bestand', () => store.set({ route: { name: 'bestand', params: {} } }))
+  .route('/inventory', () => store.set({ route: { name: 'inventory', params: {} } }))
   .notFound(() => store.set({ route: { name: 'board', params: {} } }));
 
 class AppScreen extends AurilElement {
@@ -56,7 +56,7 @@ class AppScreen extends AurilElement {
   render() {
     const { name, params } = store.state.route;
     if (name === 'day') return html`<day-focus date="${params.date ?? ''}"></day-focus>`;
-    if (name === 'bestand') return html`<item-stock></item-stock>`;
+    if (name === 'inventory') return html`<item-inventory></item-inventory>`;
     return html`<week-board></week-board>`;
   }
 }
@@ -66,7 +66,7 @@ customElements.define('app-screen', AppScreen);
 // resolved by the time any of them connects.
 import './board.js';
 import './day.js';
-import './bestand.js';
+import './inventory.js';
 import { startSync } from './sync.js';
 
 router.start();

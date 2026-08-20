@@ -10,7 +10,7 @@ class WeekBoard extends AurilElement {
     this.watch((s) => s.offline, () => this.update());
     this.watch((s) => s.weekStart, (start) => loadWeek(start));
 
-    this.delegate('click', '.day', (_, el) => router.go(`/tag/${el.getAttribute('data-date')}`));
+    this.delegate('click', '.day', (_, el) => router.go(`/day/${el.getAttribute('data-date')}`));
     this.delegate('click', '.step', (_, el) => {
       store.set((s) => ({ weekStart: addDays(s.weekStart, Number(el.getAttribute('data-step')) * 7) }));
     });
@@ -54,7 +54,7 @@ class WeekBoard extends AurilElement {
       <nav class="bar">
         <div class="column">
           <button class="to-today">heute</button>
-          <a href="/bestand">Bestand</a>
+          <a href="/inventory">Bestand</a>
         </div>
       </nav>`;
   }

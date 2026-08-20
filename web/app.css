@@ -218,7 +218,7 @@ main { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 }
 .done:active { background: var(--surface); }
 
-/* ── Bestand ────────────────────────────────────────────────────────────── */
+/* ── inventory (Bestand) ────────────────────────────────────────────────────────────── */
 
 .filters { display: flex; gap: 8px; padding: 4px 0 8px; }
 .filters button {
@@ -261,4 +261,4 @@ main { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 }
 
 /* The screen elements are frames, not boxes: their children lay out in body. */
-app-screen, week-board, day-focus, item-stock { display: contents; }
+app-screen, week-board, day-focus, item-inventory { display: contents; }

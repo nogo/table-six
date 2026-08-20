@@ -1,5 +1,5 @@
-// Bestand: not a planning screen. This is where the item list is built and
-// kept honest — create, rename, merge, delete, mark vegetarian, set the level.
+// The inventory — `Bestand` on screen. Not a planning screen: this is where
+// the item list is built and kept honest — create, rename, merge, delete, mark vegetarian, set the level.
 // Merging is the important one: it folds the many spellings of an item
 // together without losing an evening.
 import { AurilElement, html } from './auril/index.js';
@@ -7,30 +7,39 @@ import { createItem, deleteItem, mergeItem, patchItem } from './api.js';
 import { loadItems, loadWeek, router, store } from './app.js';
 import { EFFORT_ORDER } from './dates.js';
 
+/** @typedef {{ id: number, name: string }} Intent an item a pending action refers to */
+
 const FILTERS = [
-  ['alle', 'alle'],
-  ['vegetarisch', 'vegetarisch'],
-  ['ungenutzt', 'ungenutzt'],
+  ['all', 'alle'],
+  ['vegetarian', 'vegetarisch'],
+  ['unused', 'ungenutzt'],
 ];
 
-class ItemStock extends AurilElement {
+class ItemInventory extends AurilElement {
   #query = '';
-  #filter = 'alle';
+  #filter = 'all';
   /** The row that is open for editing — one at a time. */
   #editing = /** @type {number | null} */ (null);
-  /** The item waiting for a target to be folded into. */
-  #merging = /** @type {number | null} */ (null);
-  /** Deleting takes an item off every evening, so it takes a second tap. */
-  #confirming = /** @type {number | null} */ (null);
+  /**
+   * The two pending actions carry the item's name as well as its id. SQLite
+   * hands a deleted id to the next new item, so an id alone can come back
+   * pointing at something else — and a delete that was armed on one item would
+   * fire on the other without ever showing its question.
+   */
+  #merging = /** @type {Intent | null} */ (null);
+  #confirming = /** @type {Intent | null} */ (null);
 
   onConnect() {
-    this.watch((s) => s.items, () => this.update());
+    this.watch((s) => s.items, (items) => {
+      this.#dropStaleIntents(items);
+      this.update();
+    });
 
     this.delegate('click', '.back', () => router.go('/'));
 
     this.delegate('click', '.open', (_, el) => {
       const id = this.#id(el);
-      if (this.#merging !== null && this.#merging !== id) return this.#write(mergeItem(this.#merging, id));
+      if (this.#merging && this.#merging.id !== id) return this.#write(mergeItem(this.#merging.id, id));
       this.#editing = this.#editing === id ? null : id;
       this.#merging = null;
       this.#confirming = null;
@@ -50,7 +59,7 @@ class ItemStock extends AurilElement {
     });
 
     this.delegate('click', '.merge', (_, el) => {
-      this.#merging = this.#id(el);
+      this.#merging = this.#intent(this.#id(el));
       this.#editing = null;
       this.update();
     });
@@ -61,8 +70,8 @@ class ItemStock extends AurilElement {
 
     this.delegate('click', '.delete', (_, el) => {
       const id = this.#id(el);
-      if (this.#confirming !== id) {
-        this.#confirming = id;
+      if (this.#confirming?.id !== id) {
+        this.#confirming = this.#intent(id); // first tap only asks
         return this.update();
       }
       this.#confirming = null;
@@ -91,7 +100,7 @@ class ItemStock extends AurilElement {
       this.update();
     });
     this.delegate('click', '.filter', (_, el) => {
-      this.#filter = el.getAttribute('data-filter') ?? 'alle';
+      this.#filter = el.getAttribute('data-filter') ?? 'all';
       this.update();
     });
     this.delegate('submit', '.search-form', (event) => {
@@ -111,6 +120,26 @@ class ItemStock extends AurilElement {
   /** @param {number} id */
   #item(id) {
     return store.state.items.find((item) => item.id === id) ?? null;
+  }
+
+  /** @param {number} id @returns {Intent | null} */
+  #intent(id) {
+    const item = this.#item(id);
+    return item ? { id: item.id, name: item.name } : null;
+  }
+
+  /**
+   * Forget what the new list no longer supports: an item that is gone, or an
+   * id that now carries a different name because it was recycled.
+   * @param {any[]} items
+   */
+  #dropStaleIntents(items) {
+    const nameOf = new Map(items.map((item) => [item.id, item.name]));
+    /** @param {Intent | null} intent */
+    const gone = (intent) => intent !== null && nameOf.get(intent.id) !== intent.name;
+    if (gone(this.#confirming)) this.#confirming = null;
+    if (gone(this.#merging)) this.#merging = null;
+    if (this.#editing !== null && !nameOf.has(this.#editing)) this.#editing = null;
   }
 
   /** Names travel onto the board, so the week is refetched with the list. */
@@ -133,7 +162,7 @@ class ItemStock extends AurilElement {
   /** @param {any} item */
   #row(item) {
     const open = this.#editing === item.id;
-    const source = this.#merging === item.id;
+    const source = this.#merging?.id === item.id;
     return html`
       <div class="item" id="item-${item.id}" data-id="${item.id}">
         <button class="row open">
@@ -148,7 +177,7 @@ class ItemStock extends AurilElement {
             <button class="veg">${item.vegetarian ? '🌱 vegetarisch' : 'mit Fleisch'}</button>
             <button class="cycle">${item.effort}</button>
             <button class="merge">zusammenführen</button>
-            <button class="danger delete">${this.#confirming === item.id ? 'wirklich löschen?' : 'löschen'}</button>
+            <button class="danger delete">${this.#confirming?.id === item.id ? 'wirklich löschen?' : 'löschen'}</button>
           </div>`}
       </div>`;
   }
@@ -156,10 +185,10 @@ class ItemStock extends AurilElement {
   render() {
     const query = this.#query.trim().toLowerCase();
     const items = store.state.items
-      .filter((item) => (this.#filter === 'vegetarisch' ? item.vegetarian : this.#filter === 'ungenutzt' ? !item.last_used : true))
+      .filter((item) => (this.#filter === 'vegetarian' ? item.vegetarian : this.#filter === 'unused' ? !item.last_used : true))
       .filter((item) => item.name.toLowerCase().includes(query));
     const known = store.state.items.some((item) => item.name.toLowerCase() === query);
-    const merging = this.#merging === null ? null : this.#item(this.#merging);
+    const merging = this.#merging;
 
     return html`
       <header class="head column wide">
@@ -192,4 +221,4 @@ class ItemStock extends AurilElement {
       </div>`;
   }
 }
-customElements.define('item-stock', ItemStock);
+customElements.define('item-inventory', ItemInventory);
