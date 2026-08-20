@@ -1,9 +1,14 @@
 // Bootstrap: one store, one router, one screen element that swaps the view.
 import { AurilElement, Router, Store, html } from './auril/index.js';
+import { today, weekStart } from './dates.js';
 
 export const store = new Store({
   /** @type {{ name: string, params: Record<string, string | undefined> }} */
   route: { name: 'board', params: {} },
+  /** ISO Monday of the week on the board. The app is week-bound. */
+  weekStart: weekStart(today()),
+  /** The week as the server built it, or null until the first load. */
+  week: /** @type {any} */ (null),
 });
 AurilElement.store = store;
 
@@ -26,5 +31,9 @@ class AppScreen extends AurilElement {
   }
 }
 customElements.define('app-screen', AppScreen);
+
+// Screens register themselves; the import cycle back to store/router is
+// resolved by the time any of them connects.
+import './board.js';
 
 router.start();
