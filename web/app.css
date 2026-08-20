@@ -184,7 +184,7 @@ main { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 }
 .row:active .x-mark { color: var(--brass); }
 .row .mark { font-size: 13px; padding-right: 8px; }
-.row .reason { font-size: 13px; color: var(--soft); }
+.row .reason { font-size: 13px; color: var(--soft); padding-right: 12px; }
 
 .section {
   font-size: 12px;
@@ -222,7 +222,7 @@ main { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 
 .filters { display: flex; gap: 8px; padding: 4px 0 8px; }
 .filters button {
-  min-height: 40px;
+  min-height: 48px;
   padding: 0 10px;
   font-size: 12px;
   font-weight: 500;
@@ -243,6 +243,10 @@ main { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .item-controls button:active { color: var(--bone); }
 .item-controls .danger:active { color: var(--brass); }
 .item-controls input { flex: 1; min-width: 8rem; background: var(--surface); padding: 0 10px; min-height: 40px; }
+.item .row .effort { padding-left: 12px; }
+.item .row { border-top: 0; }
+.item { border-top: 1px solid var(--line); }
+.done-inline { color: var(--brass); padding: 0 8px; min-height: 40px; }
 
 .list { padding-bottom: 24px; }
 

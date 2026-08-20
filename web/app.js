@@ -56,5 +56,6 @@ customElements.define('app-screen', AppScreen);
 // resolved by the time any of them connects.
 import './board.js';
 import './day.js';
+import './bestand.js';
 
 router.start();
