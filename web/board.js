@@ -1,14 +1,13 @@
 // The week board: seven evenings, enough to judge each one, nothing to edit.
 // The whole row is the button — it leads to the day focus.
 import { AurilElement, html } from './auril/index.js';
-import { getWeek } from './api.js';
-import { router, store } from './app.js';
+import { loadWeek, router, store } from './app.js';
 import { WEEKDAYS, addDays, dayOfMonth, range, today, weekStart } from './dates.js';
 
 class WeekBoard extends AurilElement {
   onConnect() {
     this.watch((s) => s.week, () => this.update());
-    this.watch((s) => s.weekStart, (start) => this.#load(start));
+    this.watch((s) => s.weekStart, (start) => loadWeek(start));
 
     this.delegate('click', '.day', (_, el) => router.go(`/tag/${el.getAttribute('data-date')}`));
     this.delegate('click', '.step', (_, el) => {
@@ -16,13 +15,7 @@ class WeekBoard extends AurilElement {
     });
     this.delegate('click', '.to-today', () => store.set({ weekStart: weekStart(today()) }));
 
-    this.#load(store.state.weekStart);
-  }
-
-  /** @param {string} start */
-  async #load(start) {
-    const week = await getWeek(start);
-    if (store.state.weekStart === week.start) store.set({ week }); // a newer step wins
+    loadWeek();
   }
 
   /** @param {any} day */

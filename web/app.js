@@ -1,5 +1,6 @@
 // Bootstrap: one store, one router, one screen element that swaps the view.
 import { AurilElement, Router, Store, html } from './auril/index.js';
+import { getItems, getWeek } from './api.js';
 import { today, weekStart } from './dates.js';
 
 export const store = new Store({
@@ -9,12 +10,31 @@ export const store = new Store({
   weekStart: weekStart(today()),
   /** The week as the server built it, or null until the first load. */
   week: /** @type {any} */ (null),
+  /** The inventory, most recently planned first — the suggestion order. */
+  items: /** @type {any[]} */ ([]),
 });
 AurilElement.store = store;
 
+/**
+ * Refetch what changed. Every screen and the socket go through these two —
+ * the server is the truth, the client only ever reloads a scope.
+ * @param {string} [start] ISO Monday
+ */
+export async function loadWeek(start = store.state.weekStart) {
+  const week = await getWeek(start);
+  if (store.state.weekStart === week.start) store.set({ week }); // a newer step wins
+}
+
+export async function loadItems() {
+  store.set({ items: await getItems() });
+}
+
 export const router = new Router()
   .route('/', () => store.set({ route: { name: 'board', params: {} } }))
-  .route('/tag/:date', (params) => store.set({ route: { name: 'day', params } }))
+  .route('/tag/:date', (params) => store.set({
+    route: { name: 'day', params },
+    weekStart: weekStart(params.date ?? today()), // going back lands on the right week
+  }))
   .route('/bestand', () => store.set({ route: { name: 'bestand', params: {} } }))
   .notFound(() => store.set({ route: { name: 'board', params: {} } }));
 
@@ -35,5 +55,6 @@ customElements.define('app-screen', AppScreen);
 // Screens register themselves; the import cycle back to store/router is
 // resolved by the time any of them connects.
 import './board.js';
+import './day.js';
 
 router.start();

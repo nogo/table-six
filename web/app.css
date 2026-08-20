@@ -23,7 +23,8 @@
 
 body {
   margin: 0;
-  min-height: 100dvh;
+  height: 100dvh;
+  overflow: hidden; /* the screen is the frame; only the list inside scrolls */
   display: flex;
   flex-direction: column;
   background: var(--ground);
@@ -70,7 +71,7 @@ button { cursor: pointer; text-align: left; }
 }
 .head h1 { font-size: 15px; margin: 0; flex: 1; }
 
-main { flex: 1; }
+main { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 
 .bar {
   position: sticky;
@@ -80,6 +81,7 @@ main { flex: 1; }
   padding-bottom: env(safe-area-inset-bottom);
 }
 .bar .column { display: flex; gap: 8px; }
+.bar .foot { display: block; padding-top: 8px; }
 .bar button, .bar a {
   flex: 1;
   min-height: 48px;
@@ -139,30 +141,39 @@ main { flex: 1; }
 
 /* ── day focus ──────────────────────────────────────────────────────────── */
 
-.focus-head { padding: 4px 0 12px; }
+.focus-head { padding: calc(env(safe-area-inset-top) + 8px) 0 12px; }
+.focus-line { display: flex; align-items: center; gap: 8px; min-height: 56px; }
+.focus-line .step { margin-left: -14px; }
+.focus-line .name, .focus-line .date { line-height: 1; }
 .focus-head .name { font-size: 24px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
-.focus-head .date { font-size: 24px; color: var(--soft); font-variant-numeric: tabular-nums; margin-left: 8px; }
+.focus-head .date { font-size: 24px; color: var(--soft); font-variant-numeric: tabular-nums; }
 
-/* The effort level of a weekday, tapped to cycle — recurring, not this date. */
+/* The effort level of a weekday, tapped to cycle — it moves every Wednesday,
+   not just this one. A chip, so it reads as the control it is. */
 .level {
-  min-height: 32px;
+  min-height: 40px;
+  padding: 0 12px;
+  margin-left: 36px;
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  background: var(--surface);
 }
 .level:active { color: var(--bone); }
+
+.hint.warn { color: var(--brass); }
+.hint.warn, .focus-head .hint { padding: 8px 0 0; }
 
 .row {
   display: flex;
   align-items: center;
   width: 100%;
-  min-height: 56px;
+  min-height: 52px;
   font-size: 19px;
   border-top: 1px solid var(--line);
 }
 .row:active { background: var(--surface); }
 .row .grow { flex: 1; }
-.row .x, .row .plus {
+.row .x-mark, .row .add-mark {
   width: 48px;
   height: 48px;
   margin-right: -12px;
@@ -171,7 +182,8 @@ main { flex: 1; }
   color: var(--soft);
   font-size: 17px;
 }
-.row .x:active { color: var(--brass); }
+.row:active .x-mark { color: var(--brass); }
+.row .mark { font-size: 13px; padding-right: 8px; }
 .row .reason { font-size: 13px; color: var(--soft); }
 
 .section {
@@ -180,7 +192,7 @@ main { flex: 1; }
   letter-spacing: .1em;
   text-transform: uppercase;
   color: var(--soft);
-  margin: 24px 0 4px;
+  margin: 16px 0 2px;
 }
 
 .hint { color: var(--soft); font-size: 15px; padding: 12px 0; }
@@ -232,7 +244,7 @@ main { flex: 1; }
 .item-controls .danger:active { color: var(--brass); }
 .item-controls input { flex: 1; min-width: 8rem; background: var(--surface); padding: 0 10px; min-height: 40px; }
 
-.stack { padding-bottom: 24px; }
+.list { padding-bottom: 24px; }
 
 /* Bestand is the one view that takes the width: above the breakpoint the
    controls sit inline with the row instead of under it. */
