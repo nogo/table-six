@@ -12,7 +12,7 @@ export const COMPONENT_ORDER = [null, 'base', 'vegetable', 'protein', 'extra', '
 const NAMES = {
   base: 'Sättigung',
   vegetable: 'Gemüse',
-  protein: 'Eiweiß',
+  protein: 'Protein',
   extra: 'Extra',
   whole: 'Komplett',
 };

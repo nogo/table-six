@@ -46,6 +46,11 @@ On Sunday, within a few minutes, a weekly plan that
 - **Vegetarian:** wife (45) and eldest daughter (15). Never overridable.
 - **Vegetarian is a property of the item, never of the evening.** An evening
   works if those two can build a plate from it — not if everything is meatless.
+- **A plate is a set of parts, and an item carries one:** `Sättigung`,
+  `Gemüse`, `Protein`, `Extra`, or `Komplett`. The last is an evening on its
+  own and wants nothing beside it; `Extra` is never missing from a plate.
+  Unsorted is a legitimate state — it ranks like everything else, it just says
+  nothing, so a half-curated inventory works.
 - **Effort level per weekday** (`kurz` / `normal` / `entspannt`) as a recurring
   grid — a level, not a minute budget; exact cooking time doesn't matter to the
   family, so a derived minute figure would be a bogus number.
