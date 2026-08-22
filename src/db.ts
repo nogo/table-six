@@ -167,6 +167,25 @@ export function planBetween(from: string, to: string): Map<string, Item[]> {
 export const addToPlan = (date: string, itemId: number): void => void addToPlanStmt.run(date, itemId, date);
 export const removeFromPlan = (date: string, itemId: number): void => void removeFromPlanStmt.run(date, itemId);
 
+// ── pairs ────────────────────────────────────────────────────────────────────
+
+const sharedEveningsStmt = db.query<{ id: number; partner_id: number; date: string }, [string]>(
+  // The plate arrives as one bound JSON array: a variable IN list would mean
+  // building SQL around values, and values are bound here, never written in.
+  `SELECT other.item_id AS id, plate.item_id AS partner_id, other.date AS date
+   FROM plan plate
+   JOIN plan other ON other.date = plate.date AND other.item_id != plate.item_id
+   WHERE plate.item_id IN (SELECT value FROM json_each(?))
+   ORDER BY other.date`,
+);
+
+/**
+ * Every evening on which an item shared a plate with one of `itemIds`, oldest
+ * first. The evening being planned answers itself here — whatever is on it is
+ * on the plate, and the plate is never its own suggestion.
+ */
+export const sharedEvenings = (itemIds: number[]) => sharedEveningsStmt.all(JSON.stringify(itemIds));
+
 // ── effort grid ──────────────────────────────────────────────────────────────
 
 const effortGridStmt = db.query<{ weekday: number; effort: Effort }, []>('SELECT weekday, effort FROM weekday_effort');

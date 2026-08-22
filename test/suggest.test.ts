@@ -59,6 +59,60 @@ test('hesitation outranks enthusiasm when both have something to say', () => {
   expect(reasonFor(MONDAY, 'Ofengemüse')).toEqual({ axis: 'effort', effort: 'kurz' });
 });
 
+test('what has shared a plate before comes up, and says with what', () => {
+  const gnocchi = createItem('Gnocchi', true, 'kurz');
+  const sauce = createItem('Tomatensoße', true, 'kurz');
+  createItem('Reis', true, 'kurz'); // never planned, so it leads an empty evening
+  for (const item of [gnocchi, sauce]) addToPlan('2026-07-10', item.id);
+
+  expect(names(MONDAY)[0]).toBe('Reis'); // nothing on the plate to point anywhere yet
+
+  addToPlan(MONDAY, gnocchi.id);
+  expect(names(MONDAY)).toEqual(['Tomatensoße', 'Reis']);
+  expect(reasonFor(MONDAY, 'Tomatensoße')).toEqual({ axis: 'pair', partner: 'Gnocchi' });
+});
+
+test('the partner named is the one from the most recent shared evening', () => {
+  const gnocchi = createItem('Gnocchi', true, 'kurz');
+  const noodles = createItem('Nudeln', true, 'kurz');
+  const sauce = createItem('Tomatensoße', true, 'kurz');
+  addToPlan('2026-06-01', gnocchi.id);
+  addToPlan('2026-06-01', sauce.id);
+  addToPlan('2026-07-10', noodles.id);
+  addToPlan('2026-07-10', sauce.id);
+
+  addToPlan(MONDAY, gnocchi.id);
+  addToPlan(MONDAY, noodles.id);
+  expect(reasonFor(MONDAY, 'Tomatensoße')).toEqual({ axis: 'pair', partner: 'Nudeln' });
+});
+
+test('a proposed evening follows what the plate points at', () => {
+  const gnocchi = createItem('Gnocchi', true, 'kurz');
+  const sauce = createItem('Tomatensoße', true, 'kurz');
+  for (const item of [gnocchi, sauce]) addToPlan('2026-07-10', item.id);
+  addToPlan('2026-08-14', createItem('Reis', true, 'kurz').id); // three days ago, so it sinks
+
+  expect(fillEvening(MONDAY).map((item) => item.name)).toEqual(['Gnocchi', 'Tomatensoße']);
+});
+
+test('a proposal grows as far as the pairs reach and no further', () => {
+  const eaten = ['Bratwurst', 'Broccoli', 'Kartoffeln', 'Tomatensoße'];
+  for (const name of eaten) addToPlan('2026-06-01', createItem(name, name !== 'Bratwurst', 'kurz').id);
+
+  // Four items have shared that evening; the plate takes three of them.
+  expect(fillEvening(MONDAY).map((item) => item.name)).toEqual(['Bratwurst', 'Broccoli', 'Kartoffeln']);
+});
+
+test('the two vegetarians outrank the size of the plate', () => {
+  for (const name of ['Bratwurst', 'Frikadelle', 'Kasseler']) {
+    addToPlan('2026-06-01', createItem(name, false, 'kurz').id);
+  }
+  addToPlan('2026-06-02', createItem('Zucchini', true, 'kurz').id); // meatless, and on nobody else's plate
+
+  // Three items point at each other, and none of them feeds the two.
+  expect(fillEvening(MONDAY).map((item) => item.name)).toEqual(['Bratwurst', 'Frikadelle', 'Kasseler', 'Zucchini']);
+});
+
 test('a proposed evening leaves the two vegetarians a plate', () => {
   addToPlan('2026-07-10', createItem('Kartoffeln', true, 'normal').id);
   const sausage = createItem('Bratwurst', false, 'kurz'); // never planned, so it leads

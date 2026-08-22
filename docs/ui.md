@@ -61,27 +61,31 @@ not a board, and the reason this view exists is gone. Everything follows:
 ```
   ‹   MITTWOCH 19
       KURZ
-  ───────────────────────────
-      Nudeln              ✕
-      Tomatensoße         ✕
-  ───────────────────────────
+  ───────────────────────────────────
+      Nudeln                        ✕
+      Tomatensoße                   ✕
+  ───────────────────────────────────
   VORSCHLÄGE
-      Reis
-      Salat
-      Lasagne
-  ───────────────────────────
+      Reis           noch nie geplant
+      Salat        zuletzt mit Nudeln
+      Lasagne   zu aufwendig für kurz
+  ───────────────────────────────────
    ⌕ suchen oder neu …
-          fertig
+               fertig
 ```
 
 - **One day fills the screen** — targets stay large, eight suggestions fit
   without scrolling.
-- **In the base a suggestion is just an item**, listed from the inventory,
-  most recently used first. No ranking yet — that is the first feature after
-  the base, and this screen is where it lands.
-- **When ranking comes, every suggestion carries its reason** in plain words
-  ("vor 21 Tagen", "zu aufwendig für kurz"). Never a score: while the log is
-  this thin a number would be bogus.
+- **A suggestion is ranked for this evening, not for the inventory.** What is
+  already on the plate decides the order; an empty evening is ranked by what
+  has not been on the table for a while.
+- **Every suggestion carries its reason** in plain words („vor 21 Tagen",
+  „zuletzt mit Gnocchi", „zu aufwendig für kurz"). Never a score: while the log
+  is this thin a number would be bogus. Nothing is filtered away — the worst
+  item in the inventory still shows up, it just shows up last.
+- **`Abend vorschlagen` proposes the whole evening**, and only ever fills a day
+  that is still empty. Clearing a day is how you ask for another one; there is
+  no re-roll, no confirming and nothing to undo.
 - **One tap adds, one tap removes**, written immediately, no confirming.
 - **The search field sits at the bottom** and is at the same time the field for
   creating — what isn't found gets entered.
@@ -181,9 +185,10 @@ Colour is scarce, so symbols carry every state that isn't "today" or "careful".
 - **No notes, no shopping.** They stay on the magnet board.
 - **No drag & drop.** It presupposes a matrix of recipe cards; here you would
   drag items between days that are not visible at the same time.
-- **No automatic filling in v1.** It is the goal, but only once the inventory
-  is curated and the ranking is worth something. Its screen already exists: the
-  week board.
+- **No automatic filling of the week.** One evening at a time, from the day
+  focus. Seven at once waits until the ranking has earned it: a weak evening
+  costs one ✕, a weak week costs seven and teaches the family to stop pressing
+  the button. Its screen already exists — the week board.
 
 Role colours · a colour per weekday · cards with borders and rounding · icons
 without text · animation · numbers in the suggestion · webfonts · a second

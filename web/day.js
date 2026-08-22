@@ -17,6 +17,7 @@ const EVENING = { kurz: 'kurzer Abend', normal: 'normaler Abend', entspannt: 'en
 /** @type {Record<string, (reason: any) => string>} */
 const REASON = {
   effort: (reason) => `zu aufwendig für ${reason.effort}`,
+  pair: (reason) => `zuletzt mit ${reason.partner}`,
   veg: () => 'macht es vegetarisch',
   fresh: () => 'noch nie geplant',
   recency: (reason) =>
