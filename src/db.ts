@@ -22,6 +22,8 @@ export type Item = {
   vegetarian: boolean;
   effort: Effort;
   component: Component | null;
+  /** Out of rotation: it keeps every evening it was on, it is never proposed. */
+  retired: boolean;
   /** ISO date of the latest evening this item is planned for, or null. */
   last_used: string | null;
 };
@@ -39,6 +41,7 @@ db.exec(`
     vegetarian INTEGER NOT NULL DEFAULT 0,
     effort     TEXT NOT NULL DEFAULT 'normal' CHECK (effort IN ('kurz', 'normal', 'entspannt')),
     component  TEXT CHECK (component IN ('base', 'vegetable', 'protein', 'extra', 'whole')),
+    retired    INTEGER NOT NULL DEFAULT 0,
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -69,10 +72,14 @@ if (!hasColumn('items', 'component')) {
   db.exec("ALTER TABLE items ADD COLUMN component TEXT CHECK (component IN ('base', 'vegetable', 'protein', 'extra', 'whole'))");
 }
 
+if (!hasColumn('items', 'retired')) {
+  db.exec('ALTER TABLE items ADD COLUMN retired INTEGER NOT NULL DEFAULT 0');
+}
+
 // ── items ────────────────────────────────────────────────────────────────────
 
 const ITEM_COLUMNS = `
-  items.id, items.name, items.vegetarian, items.effort, items.component,
+  items.id, items.name, items.vegetarian, items.effort, items.component, items.retired,
   (SELECT MAX(plan.date) FROM plan WHERE plan.item_id = items.id) AS last_used
 `;
 
@@ -82,10 +89,15 @@ type ItemRow = {
   vegetarian: number;
   effort: Effort;
   component: Component | null;
+  retired: number;
   last_used: string | null;
 };
 
-const toItem = (row: ItemRow): Item => ({ ...row, vegetarian: row.vegetarian === 1 });
+const toItem = (row: ItemRow): Item => ({
+  ...row,
+  vegetarian: row.vegetarian === 1,
+  retired: row.retired === 1,
+});
 
 /** The inventory, most recently planned first — the order `Bestand` shows. */
 const listItemsStmt = db.query<ItemRow, []>(
@@ -95,8 +107,8 @@ const getItemStmt = db.query<ItemRow, [number]>(`SELECT ${ITEM_COLUMNS} FROM ite
 const insertItemStmt = db.query<{ id: number }, [string, number, Effort, Component | null]>(
   'INSERT INTO items (name, vegetarian, effort, component) VALUES (?, ?, ?, ?) RETURNING id',
 );
-const updateItemStmt = db.query<null, [string, number, Effort, Component | null, number]>(
-  'UPDATE items SET name = ?, vegetarian = ?, effort = ?, component = ? WHERE id = ?',
+const updateItemStmt = db.query<null, [string, number, Effort, Component | null, number, number]>(
+  'UPDATE items SET name = ?, vegetarian = ?, effort = ?, component = ?, retired = ? WHERE id = ?',
 );
 const deleteItemStmt = db.query<null, [number]>('DELETE FROM items WHERE id = ?');
 
@@ -112,18 +124,31 @@ export function createItem(name: string, vegetarian: boolean, effort: Effort, co
   return getItem(id)!;
 }
 
-export function updateItem(
-  id: number,
-  name: string,
-  vegetarian: boolean,
-  effort: Effort,
-  component: Component | null,
-): Item | null {
-  updateItemStmt.run(name, vegetarian ? 1 : 0, effort, component, id);
+/** Everything an item is, in one go — the PATCH route fills in what it kept. */
+export type ItemFields = {
+  name: string;
+  vegetarian: boolean;
+  effort: Effort;
+  component: Component | null;
+  retired: boolean;
+};
+
+export function updateItem(id: number, fields: ItemFields): Item | null {
+  const { name, vegetarian, effort, component, retired } = fields;
+  updateItemStmt.run(name, vegetarian ? 1 : 0, effort, component, retired ? 1 : 0, id);
   return getItem(id);
 }
 
 export const deleteItem = (id: number): void => void deleteItemStmt.run(id);
+
+const wasPlannedStmt = db.query<{ one: number }, [number]>('SELECT 1 AS one FROM plan WHERE item_id = ? LIMIT 1');
+
+/**
+ * Has this item ever been on an evening? Deleting one that has takes those
+ * evenings with it — `plan` cascades — so that is the line between deleting
+ * an item and retiring it.
+ */
+export const wasPlanned = (id: number): boolean => wasPlannedStmt.get(id) !== null;
 
 const mergePlanStmt = db.query<null, [number, number]>(
   // Keep the evening: the target takes over every date the source was on,

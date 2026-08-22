@@ -57,6 +57,11 @@ On Sunday, within a few minutes, a weekly plan that
 - **Local, no auth, no server, German content only.** No allergies (as of 08/2026).
 - **The inventory stands on its own.** Items are created, renamed and merged
   by hand; nothing outside the app is needed to fill it or to keep it usable.
+- **Nothing the family has eaten is deleted, only paused.** An item that has
+  been on an evening keeps every evening it was on; pausing takes it out of
+  the suggestions and is undone with one tap. Deleting is for what nobody
+  cooked — a typo has no history to lose. History is what the app reasons
+  from, so losing it is never one tap away.
 
 ### Soft
 

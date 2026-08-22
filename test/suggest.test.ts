@@ -1,6 +1,7 @@
 import { beforeEach, expect, test } from 'bun:test';
-import { addToPlan, createItem, db, setWeekdayEffort, type Component } from '../src/db.ts';
+import { addToPlan, createItem, db, setWeekdayEffort, updateItem, type Component } from '../src/db.ts';
 import { fillEvening, suggest } from '../src/suggest.ts';
+import { buildWeek } from '../src/week.ts';
 
 const MONDAY = '2026-08-17';
 const THURSDAY = '2026-08-20';
@@ -173,6 +174,30 @@ test('even a whole evening gets the two vegetarians something', () => {
   part('Salat', 'vegetable');
 
   expect(fillEvening(MONDAY).map((item) => item.name)).toEqual(['Lasagne', 'Salat']);
+});
+
+test('a retired item is never proposed, and never hidden either', () => {
+  const potatoes = part('Kartoffeln', 'base');
+  const broccoli = part('Broccoli', 'vegetable');
+  addToPlan('2026-07-10', broccoli.id); // it has a history worth keeping
+  updateItem(broccoli.id, { name: 'Broccoli', vegetarian: true, effort: 'kurz', component: 'vegetable', retired: true });
+
+  addToPlan(MONDAY, potatoes.id);
+  // Last, where a plate short of vegetables would otherwise have put it first.
+  expect(names(MONDAY).at(-1)).toBe('Broccoli');
+  expect(reasonFor(MONDAY, 'Broccoli')).toEqual({ axis: 'retired' });
+
+  db.exec('DELETE FROM plan');
+  part('Salat', 'vegetable');
+  expect(fillEvening(MONDAY).map((item) => item.name)).not.toContain('Broccoli');
+});
+
+test('a retired item keeps the evenings it was on', () => {
+  const lasagne = part('Lasagne', 'whole');
+  addToPlan(MONDAY, lasagne.id);
+  updateItem(lasagne.id, { name: 'Lasagne', vegetarian: true, effort: 'kurz', component: 'whole', retired: true });
+
+  expect(buildWeek(MONDAY).days[0]!.items.map((item) => item.name)).toEqual(['Lasagne']);
 });
 
 test('a proposed evening leaves the two vegetarians a plate', () => {

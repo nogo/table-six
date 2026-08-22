@@ -84,13 +84,27 @@ test('merging keeps every evening the source was on', async () => {
   expect(await (await fetch(url('/api/items'))).json()).toHaveLength(1);
 });
 
-test('deleting an item takes it off the evenings it was on', async () => {
+test('an item nobody has cooked can be deleted for real', async () => {
+  const typo = await item('Lasgane');
+  expect((await send('DELETE', `/api/items/${typo.id}`)).status).toBe(204);
+  expect(await (await fetch(url('/api/items'))).json()).toHaveLength(0);
+});
+
+test('an item that has been on an evening is retired, never deleted', async () => {
   const lasagne = await item('Lasagne');
   await send('PUT', `/api/plan/2026-08-19/${lasagne.id}`);
-  expect((await send('DELETE', `/api/items/${lasagne.id}`)).status).toBe(204);
+
+  // Deleting would take the evening with it, so the route refuses.
+  expect((await send('DELETE', `/api/items/${lasagne.id}`)).status).toBe(409);
+
+  const retired = await (await send('PATCH', `/api/items/${lasagne.id}`, { retired: true })).json();
+  expect(retired.retired).toBe(true);
 
   const week = await (await fetch(url('/api/week?start=2026-08-19'))).json();
-  expect(week.days[2].items).toEqual([]);
+  expect(week.days[2].items.map((i: { name: string }) => i.name)).toEqual(['Lasagne']); // the evening stands
+
+  const back = await (await send('PATCH', `/api/items/${lasagne.id}`, { retired: false })).json();
+  expect(back.retired).toBe(false); // a mistake is fixable
 });
 
 test('the effort level is set for the weekday, not for the date', async () => {

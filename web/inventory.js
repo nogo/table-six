@@ -79,6 +79,12 @@ class ItemInventory extends AurilElement {
       }
     });
 
+    // Retiring is reversible, so it needs no second tap the way deleting does.
+    this.delegate('click', '.retire, .resume', (_, el) => {
+      const item = this.#item(this.#id(el));
+      if (item) this.#write(patchItem(item.id, { retired: !item.retired }));
+    });
+
     this.delegate('click', '.merge', (_, el) => {
       this.#merging = this.#intent(this.#id(el));
       this.#editing = null;
@@ -184,6 +190,17 @@ class ItemInventory extends AurilElement {
     input?.focus();
   }
 
+  /**
+   * The one thing a row says about itself beside its name. A paused item's
+   * part does not matter — it is not being offered for a plate.
+   * @param {any} item @param {boolean} source
+   */
+  #note(item, source) {
+    if (source) return 'wird aufgelöst';
+    if (item.retired) return 'pausiert';
+    return item.component ? componentName(item.component) : '';
+  }
+
   /** @param {any} item */
   #row(item) {
     const open = this.#editing === item.id;
@@ -192,13 +209,24 @@ class ItemInventory extends AurilElement {
       <div class="item" id="item-${item.id}" data-id="${item.id}">
         <button class="row open" aria-expanded="${open}">
           <span class="grow">${item.name}</span>
-          ${source
-            ? html`<span class="reason">wird aufgelöst</span>`
-            : item.component && html`<span class="reason">${componentName(item.component)}</span>`}
+          ${this.#note(item, source) && html`<span class="reason">${this.#note(item, source)}</span>`}
           ${item.vegetarian && html`<span class="mark">🌱</span>`}
           <span class="effort">${item.effort}</span>
         </button>
       </div>`;
+  }
+
+  /**
+   * Deleting takes every evening the item was on with it, so it is only
+   * offered where there is nothing to lose. Anything the family has actually
+   * eaten is paused instead — it keeps its evenings and it can come back.
+   * @param {any} item
+   */
+  #retireOrDelete(item) {
+    if (item.retired) return html`<button class="resume">wieder aufnehmen</button>`;
+    if (item.last_used) return html`<button class="retire">pausieren</button>`;
+    return html`
+      <button class="danger delete">${this.#confirming?.id === item.id ? 'wirklich löschen?' : 'löschen'}</button>`;
   }
 
   /**
@@ -220,7 +248,7 @@ class ItemInventory extends AurilElement {
           <button class="cycle">${item.effort}</button>
           <button class="role">${componentName(item.component)}</button>
           <button class="merge">zusammenführen</button>
-          <button class="danger delete">${this.#confirming?.id === item.id ? 'wirklich löschen?' : 'löschen'}</button>
+          ${this.#retireOrDelete(item)}
         </div>
       </div>`;
   }

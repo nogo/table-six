@@ -17,6 +17,7 @@ const EVENING = { kurz: 'kurzer Abend', normal: 'normaler Abend', entspannt: 'en
  */
 /** @type {Record<string, (reason: any) => string>} */
 const REASON = {
+  retired: () => 'pausiert',
   effort: (reason) => `zu aufwendig für ${reason.effort}`,
   alone: () => 'reicht allein',
   doubled: (reason) => `schon ${componentName(reason.component)} dabei`,

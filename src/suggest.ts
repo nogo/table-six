@@ -19,6 +19,8 @@ import { daysBetween, weekday } from './dates.ts';
 import { vegetarianOk } from './week.ts';
 
 export type Reason =
+  /** Out of rotation. Still reachable through the search field, never offered. */
+  | { axis: 'retired' }
   | { axis: 'effort'; effort: Effort }
   /** An evening on its own: it leads an empty plate and stays off a started one. */
   | { axis: 'alone' }
@@ -40,6 +42,9 @@ export type Suggestion = { item: Item; reason: Reason | null };
  * inventory still shows up, it just shows up last.
  */
 const WEIGHT = {
+  // Enough that nothing outweighs it. Retiring is not a hint, it is an answer
+  // the family already gave — but it sinks the item, it does not hide it.
+  retired: -10,
   tooMuch: -3,
   fillsVegGap: 2,
   fillsGap: 2,
@@ -109,9 +114,14 @@ function weigh(item: Item, evening: Evening, pairing?: Pairing): Ranked {
   let score = 0;
   let reason: Reason | null = null;
 
+  if (item.retired) {
+    score += WEIGHT.retired;
+    reason = { axis: 'retired' };
+  }
+
   if (EFFORT_ORDER.indexOf(item.effort) > EFFORT_ORDER.indexOf(evening.effort)) {
     score += WEIGHT.tooMuch;
-    reason = { axis: 'effort', effort: evening.effort };
+    reason ??= { axis: 'effort', effort: evening.effort };
   }
 
   // `whole` is an evening, not a part of one — the same sentence explains why
@@ -215,7 +225,11 @@ const plateOf = (date: string): Item[] => planBetween(date, date).get(date) ?? [
 export function fillEvening(date: string): Item[] {
   if (plateOf(date).length > 0) return plateOf(date);
 
-  const first = rank(date)[0]?.item;
+  // Proposing is the one place that decides rather than suggests, so a retired
+  // item is out of it entirely — in the list it merely sits last.
+  const candidates = () => rank(date).filter(({ item }) => !item.retired);
+
+  const first = candidates()[0]?.item;
   if (!first) return [];
   addToPlan(date, first.id);
 
@@ -223,14 +237,14 @@ export function fillEvening(date: string): Item[] {
   while (first.component !== 'whole' && plateOf(date).length < PLATE_MAX) {
     // The best candidate the plate actually points at — not simply the best
     // one, or the evening would fill itself with unrelated favourites.
-    const next = rank(date).find((candidate) => candidate.pairs > 0 || candidate.fills);
+    const next = candidates().find((candidate) => candidate.pairs > 0 || candidate.fills);
     if (!next) break;
     addToPlan(date, next.item.id);
   }
 
   // The one hard rule in the app, so it outranks the size of the plate.
   if (!vegetarianOk(plateOf(date))) {
-    const meatless = rank(date).find(({ item }) => item.vegetarian)?.item;
+    const meatless = candidates().find(({ item }) => item.vegetarian)?.item;
     if (meatless) addToPlan(date, meatless.id);
   }
 

@@ -28,10 +28,13 @@ export const getSuggestions = (date) => request(`/api/suggestions/${date}`);
 /** @param {string} name @param {{vegetarian?: boolean, effort?: string, component?: string | null}} [fields] */
 export const createItem = (name, fields = {}) => send('POST', '/api/items', { name, ...fields });
 
-/** @param {number} id @param {{name?: string, vegetarian?: boolean, effort?: string, component?: string | null}} fields */
+/** @param {number} id
+ *  @param {{name?: string, vegetarian?: boolean, effort?: string, component?: string | null, retired?: boolean}} fields */
 export const patchItem = (id, fields) => send('PATCH', `/api/items/${id}`, fields);
 
-/** @param {number} id */
+/** Only for an item nobody has cooked; one that has been on an evening is
+ *  retired with `patchItem(id, { retired: true })` instead.
+ *  @param {number} id */
 export const deleteItem = (id) => send('DELETE', `/api/items/${id}`);
 
 /** @param {number} id @param {number} into fold `id` into `into`, keeping every evening */

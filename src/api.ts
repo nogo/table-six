@@ -12,6 +12,7 @@ import {
   removeFromPlan,
   setWeekdayEffort,
   updateItem,
+  wasPlanned,
   type Component,
   type Effort,
   type Item,
@@ -105,22 +106,28 @@ export const routes = {
       const vegetarian = fields.vegetarian === undefined ? item.vegetarian : fields.vegetarian === true;
       const component = fields.component === undefined ? item.component : fields.component;
       if (!isComponent(component)) return bad(`component must be null or one of ${COMPONENTS.join(', ')}`);
+      const retired = fields.retired === undefined ? item.retired : fields.retired === true;
 
       const clash = listItems().find(
         (other) => other.id !== item.id && other.name.toLowerCase() === name.toLowerCase(),
       );
       if (clash) return Response.json({ error: 'name exists', item: clash }, { status: 409 });
 
-      const updated = updateItem(item.id, name, vegetarian, effort, component) as Item;
+      const updated = updateItem(item.id, { name, vegetarian, effort, component, retired }) as Item;
       publish('items'); // a name travels onto every board it is planned on
       return Response.json(updated);
     },
 
-    // Deleting an item takes it off every evening it was on. That is the point:
-    // the inventory is curated, and a mistake should leave no trace.
+    // Deleting takes the item off every evening it was on — `plan` cascades —
+    // so it is only offered where there is nothing to lose. An item the family
+    // has actually eaten is retired instead: it keeps its evenings, it stops
+    // being proposed, and it can come back.
     DELETE: (request: Request & { params: { id: string } }) => {
       const id = asId(request.params.id);
       if (id === null || !getItem(id)) return missing();
+      if (wasPlanned(id)) {
+        return Response.json({ error: 'item has been planned; retire it instead' }, { status: 409 });
+      }
       deleteItem(id);
       publish('items');
       return done();
