@@ -1,6 +1,9 @@
-// Schema and every SQL statement in the app. Callers get functions, never a
-// query string — that keeps binding (and therefore escaping) in one file.
-import { Database } from 'bun:sqlite';
+// Every SQL statement in the app. Callers get functions, never a query string
+// — that keeps binding (and therefore escaping) in one file. The schema and
+// its migrations live next door in `src/schema.ts`.
+import { db } from './schema.ts';
+
+export { db };
 
 export type Effort = 'kurz' | 'normal' | 'entspannt';
 
@@ -27,54 +30,6 @@ export type Item = {
   /** ISO date of the latest evening this item is planned for, or null. */
   last_used: string | null;
 };
-
-const path = process.env.TABLE_SIX_DB ?? new URL('../data/table-six.db', import.meta.url).pathname;
-export const db = new Database(path, { create: true });
-
-db.exec('PRAGMA journal_mode = WAL');
-db.exec('PRAGMA foreign_keys = ON');
-
-db.exec(`
-  CREATE TABLE IF NOT EXISTS items (
-    id         INTEGER PRIMARY KEY,
-    name       TEXT NOT NULL COLLATE NOCASE UNIQUE,
-    vegetarian INTEGER NOT NULL DEFAULT 0,
-    effort     TEXT NOT NULL DEFAULT 'normal' CHECK (effort IN ('kurz', 'normal', 'entspannt')),
-    component  TEXT CHECK (component IN ('base', 'vegetable', 'protein', 'extra', 'whole')),
-    retired    INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL DEFAULT (datetime('now'))
-  );
-
-  CREATE TABLE IF NOT EXISTS plan (
-    date     TEXT NOT NULL,
-    item_id  INTEGER NOT NULL REFERENCES items(id) ON DELETE CASCADE,
-    position INTEGER NOT NULL,
-    PRIMARY KEY (date, item_id)
-  );
-
-  CREATE INDEX IF NOT EXISTS plan_item ON plan(item_id);
-
-  -- The effort level is a recurring weekday grid, not a property of a date:
-  -- Wednesday is short every week, not just this one.
-  CREATE TABLE IF NOT EXISTS weekday_effort (
-    weekday INTEGER PRIMARY KEY CHECK (weekday BETWEEN 1 AND 7),
-    effort  TEXT NOT NULL CHECK (effort IN ('kurz', 'normal', 'entspannt'))
-  );
-`);
-
-// `CREATE TABLE IF NOT EXISTS` leaves a table that is already there alone, so
-// a column that arrives later needs its own step. The family's database is
-// older than `component`.
-const hasColumn = (table: string, column: string): boolean =>
-  db.query('SELECT 1 FROM pragma_table_info(?) WHERE name = ?').get(table, column) !== null;
-
-if (!hasColumn('items', 'component')) {
-  db.exec("ALTER TABLE items ADD COLUMN component TEXT CHECK (component IN ('base', 'vegetable', 'protein', 'extra', 'whole'))");
-}
-
-if (!hasColumn('items', 'retired')) {
-  db.exec('ALTER TABLE items ADD COLUMN retired INTEGER NOT NULL DEFAULT 0');
-}
 
 // ── items ────────────────────────────────────────────────────────────────────
 

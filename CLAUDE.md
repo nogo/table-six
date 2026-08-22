@@ -30,8 +30,11 @@ whether the runtime already has it — Bun ships more every release.
   on its own. Nothing falls through a `dir` route — an unknown path is a 404,
   and a new client route needs its shell route here.
 - **Database:** `bun:sqlite`, WAL, foreign keys on. Prepared statements as
-  module-level constants, values always bound, never interpolated. The schema
-  lives in `src/db.ts` and is created with `CREATE TABLE IF NOT EXISTS`.
+  module-level constants in `src/db.ts`, values always bound, never
+  interpolated. The schema lives in `src/schema.ts` as a ledger of steps, and
+  `user_version` counts the steps a database has run: a schema change is a new
+  step appended to `MIGRATIONS`, never an edit to one that has shipped — the
+  family's database has already run it.
 - **Frontend:** [auril.js](../../auril) vendored into `web/auril/` with
   `../../auril/vendor.sh web/auril`. Plain ES modules, no npm, no bundler, no
   JSX — the file in the debugger is the file that was written. `html` for
