@@ -6,14 +6,24 @@ import { AurilElement, html } from './auril/index.js';
 import { createItem, deleteItem, mergeItem, patchItem } from './api.js';
 import { loadItems, loadWeek, router, store } from './app.js';
 import { EFFORT_ORDER } from './dates.js';
+import { COMPONENT_ORDER, componentName } from './items.js';
 
 /** @typedef {{ id: number, name: string }} Intent an item a pending action refers to */
 
 const FILTERS = [
   ['all', 'alle'],
   ['vegetarian', 'vegetarisch'],
+  ['unsorted', 'ohne Rolle'],
   ['unused', 'ungenutzt'],
 ];
+
+/** What each filter keeps. `ohne Rolle` is how the curation gets finished. */
+const MATCHES = {
+  all: () => true,
+  vegetarian: (/** @type {any} */ item) => item.vegetarian,
+  unsorted: (/** @type {any} */ item) => item.component === null,
+  unused: (/** @type {any} */ item) => !item.last_used,
+};
 
 class ItemInventory extends AurilElement {
   #query = '';
@@ -55,6 +65,14 @@ class ItemInventory extends AurilElement {
       const item = this.#item(this.#id(el));
       if (item) {
         this.#write(patchItem(item.id, { effort: EFFORT_ORDER[(EFFORT_ORDER.indexOf(item.effort) + 1) % EFFORT_ORDER.length] }));
+      }
+    });
+
+    this.delegate('click', '.role', (_, el) => {
+      const item = this.#item(this.#id(el));
+      if (item) {
+        const next = COMPONENT_ORDER[(COMPONENT_ORDER.indexOf(item.component) + 1) % COMPONENT_ORDER.length];
+        this.#write(patchItem(item.id, { component: next }));
       }
     });
 
@@ -167,7 +185,9 @@ class ItemInventory extends AurilElement {
       <div class="item" id="item-${item.id}" data-id="${item.id}">
         <button class="row open">
           <span class="grow">${item.name}</span>
-          ${source && html`<span class="reason">wird aufgelöst</span>`}
+          ${source
+            ? html`<span class="reason">wird aufgelöst</span>`
+            : item.component && html`<span class="reason">${componentName(item.component)}</span>`}
           ${item.vegetarian && html`<span class="mark">🌱</span>`}
           <span class="effort">${item.effort}</span>
         </button>
@@ -176,6 +196,7 @@ class ItemInventory extends AurilElement {
             <input class="rename" value="${item.name}" aria-label="Name" autocomplete="off" enterkeyhint="done">
             <button class="veg">${item.vegetarian ? '🌱 vegetarisch' : 'mit Fleisch'}</button>
             <button class="cycle">${item.effort}</button>
+            <button class="role">${componentName(item.component)}</button>
             <button class="merge">zusammenführen</button>
             <button class="danger delete">${this.#confirming?.id === item.id ? 'wirklich löschen?' : 'löschen'}</button>
           </div>`}
@@ -185,7 +206,7 @@ class ItemInventory extends AurilElement {
   render() {
     const query = this.#query.trim().toLowerCase();
     const items = store.state.items
-      .filter((item) => (this.#filter === 'vegetarian' ? item.vegetarian : this.#filter === 'unused' ? !item.last_used : true))
+      .filter(MATCHES[/** @type {'all'} */ (this.#filter)] ?? MATCHES.all)
       .filter((item) => item.name.toLowerCase().includes(query));
     const known = store.state.items.some((item) => item.name.toLowerCase() === query);
     const merging = this.#merging;

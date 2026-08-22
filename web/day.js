@@ -4,6 +4,7 @@ import { AurilElement, html } from './auril/index.js';
 import { addToPlan, createItem, fillDay, removeFromPlan, setWeekdayEffort } from './api.js';
 import { loadItems, loadSuggestions, loadWeek, router, store } from './app.js';
 import { EFFORT_ORDER, WEEKDAYS, dayOfMonth, weekday } from './dates.js';
+import { componentName } from './items.js';
 
 const ROWS = 8; // plate and suggestions together — as many as fit without scrolling
 
@@ -17,7 +18,10 @@ const EVENING = { kurz: 'kurzer Abend', normal: 'normaler Abend', entspannt: 'en
 /** @type {Record<string, (reason: any) => string>} */
 const REASON = {
   effort: (reason) => `zu aufwendig für ${reason.effort}`,
+  alone: () => 'reicht allein',
+  doubled: (reason) => `schon ${componentName(reason.component)} dabei`,
   pair: (reason) => `zuletzt mit ${reason.partner}`,
+  gap: (reason) => `${componentName(reason.component)} fehlt noch`,
   veg: () => 'macht es vegetarisch',
   fresh: () => 'noch nie geplant',
   recency: (reason) =>

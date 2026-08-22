@@ -1,5 +1,5 @@
 import { beforeEach, expect, test } from 'bun:test';
-import { addToPlan, createItem, db, setWeekdayEffort } from '../src/db.ts';
+import { addToPlan, createItem, db, setWeekdayEffort, type Component } from '../src/db.ts';
 import { fillEvening, suggest } from '../src/suggest.ts';
 
 const MONDAY = '2026-08-17';
@@ -111,6 +111,68 @@ test('the two vegetarians outrank the size of the plate', () => {
 
   // Three items point at each other, and none of them feeds the two.
   expect(fillEvening(MONDAY).map((item) => item.name)).toEqual(['Bratwurst', 'Frikadelle', 'Kasseler', 'Zucchini']);
+});
+
+/** An item that has been sorted, which is what these tests are about. */
+const part = (name: string, component: Component, vegetarian = true) =>
+  createItem(name, vegetarian, 'kurz', component);
+
+test('what the plate is short of comes up, and a second helping sinks', () => {
+  const potatoes = part('Kartoffeln', 'base');
+  part('Broccoli', 'vegetable');
+  part('Reis', 'base');
+
+  // Nothing is missing from an evening that has not started.
+  expect(reasonFor(MONDAY, 'Broccoli')).toEqual({ axis: 'fresh' });
+
+  addToPlan(MONDAY, potatoes.id);
+  expect(names(MONDAY)).toEqual(['Broccoli', 'Reis']);
+  expect(reasonFor(MONDAY, 'Broccoli')).toEqual({ axis: 'gap', component: 'vegetable' });
+  expect(reasonFor(MONDAY, 'Reis')).toEqual({ axis: 'doubled', component: 'base' });
+});
+
+test('an evening on its own leads an empty plate and stays off a started one', () => {
+  part('Lasagne', 'whole');
+  part('Reis', 'base');
+
+  expect(names(MONDAY)).toEqual(['Lasagne', 'Reis']);
+  expect(reasonFor(MONDAY, 'Lasagne')).toEqual({ axis: 'alone' });
+
+  addToPlan(MONDAY, part('Kartoffeln', 'base').id);
+  expect(names(MONDAY).at(-1)).toBe('Lasagne'); // last now, and for the same reason
+  expect(reasonFor(MONDAY, 'Lasagne')).toEqual({ axis: 'alone' });
+});
+
+test('a plate a whole item has finished is short of nothing', () => {
+  addToPlan(MONDAY, part('Lasagne', 'whole').id);
+  part('Reis', 'base');
+  part('Broccoli', 'vegetable');
+
+  expect(reasonFor(MONDAY, 'Reis')).toEqual({ axis: 'fresh' }); // no gap to fill
+  expect(reasonFor(MONDAY, 'Broccoli')).toEqual({ axis: 'fresh' });
+});
+
+test('a proposal builds a plate out of the parts', () => {
+  part('Bratwurst', 'protein', false);
+  part('Broccoli', 'vegetable');
+  part('Kartoffeln', 'base');
+
+  expect(fillEvening(MONDAY).map((item) => item.name)).toEqual(['Bratwurst', 'Broccoli', 'Kartoffeln']);
+});
+
+test('a whole item is the whole evening', () => {
+  part('Lasagne', 'whole');
+  part('Reis', 'base');
+  part('Salat', 'vegetable');
+
+  expect(fillEvening(MONDAY).map((item) => item.name)).toEqual(['Lasagne']);
+});
+
+test('even a whole evening gets the two vegetarians something', () => {
+  part('Lasagne', 'whole', false);
+  part('Salat', 'vegetable');
+
+  expect(fillEvening(MONDAY).map((item) => item.name)).toEqual(['Lasagne', 'Salat']);
 });
 
 test('a proposed evening leaves the two vegetarians a plate', () => {

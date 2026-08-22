@@ -11,6 +11,7 @@ import {
   listItems,
   planBetween,
   sharedEvenings,
+  type Component,
   type Effort,
   type Item,
 } from './db.ts';
@@ -19,8 +20,14 @@ import { vegetarianOk } from './week.ts';
 
 export type Reason =
   | { axis: 'effort'; effort: Effort }
+  /** An evening on its own: it leads an empty plate and stays off a started one. */
+  | { axis: 'alone' }
+  /** The plate already has one of these. */
+  | { axis: 'doubled'; component: Component }
   /** It has been on a plate with `partner` before — most recently, if often. */
   | { axis: 'pair'; partner: string }
+  /** The plate is still missing this part. */
+  | { axis: 'gap'; component: Component }
   | { axis: 'veg' }
   | { axis: 'fresh' }
   /** Days between that evening and this one; negative when it is still ahead. */
@@ -35,7 +42,11 @@ export type Suggestion = { item: Item; reason: Reason | null };
 const WEIGHT = {
   tooMuch: -3,
   fillsVegGap: 2,
+  fillsGap: 2,
   pairedBefore: 1,
+  standsAlone: 1,
+  crowdsThePlate: -2,
+  doubled: -1,
   neverPlanned: 1.5,
   longAgo: 1,
   aWhileAgo: 0.5,
@@ -45,8 +56,11 @@ const WEIGHT = {
 /** One shared evening is worth about as much as novelty, two outweigh it. */
 const PAIR_CAP = 2;
 
-/** As many items as the history can point at. The vegetarians outrank it. */
+/** As many items as the history and the plate can point at. The two outrank it. */
 const PLATE_MAX = 3;
+
+/** What a plate is short of. `extra` is never missing, `whole` is never a part. */
+const WANTED: Component[] = ['base', 'vegetable', 'protein'];
 
 const LONG_AGO = 28;
 const A_WHILE = 14;
@@ -73,17 +87,41 @@ function pairings(plate: Item[], nameOf: (id: number) => string): Map<number, Pa
   return new Map([...evenings].map(([id, dates]) => [id, { evenings: dates.size, partner: partner.get(id)! }]));
 }
 
+/** The shape of the evening every item is weighed against. */
+type Evening = {
+  date: string;
+  effort: Effort;
+  empty: boolean;
+  /** The plate has something on it, and nothing meatless. */
+  vegGap: boolean;
+  /** The parts the plate already carries. */
+  covered: Set<Component>;
+  /** The parts it is still short of — empty before it starts and once it is finished. */
+  missing: Set<Component>;
+};
+
 /**
  * Precedence decides which reason is shown, not the weight: why you would
- * hesitate outranks why you would bother.
+ * hesitate outranks why you would bother, and what the family has actually
+ * cooked outranks what the plate is structurally short of.
  */
-function weigh(item: Item, date: string, effort: Effort, vegGap: boolean, pairing?: Pairing): Ranked {
+function weigh(item: Item, evening: Evening, pairing?: Pairing): Ranked {
   let score = 0;
   let reason: Reason | null = null;
 
-  if (EFFORT_ORDER.indexOf(item.effort) > EFFORT_ORDER.indexOf(effort)) {
+  if (EFFORT_ORDER.indexOf(item.effort) > EFFORT_ORDER.indexOf(evening.effort)) {
     score += WEIGHT.tooMuch;
-    reason = { axis: 'effort', effort };
+    reason = { axis: 'effort', effort: evening.effort };
+  }
+
+  // `whole` is an evening, not a part of one — the same sentence explains why
+  // it leads an empty plate and why it stays off a plate that has started.
+  if (item.component === 'whole') {
+    score += evening.empty ? WEIGHT.standsAlone : WEIGHT.crowdsThePlate;
+    reason ??= { axis: 'alone' };
+  } else if (item.component !== null && evening.covered.has(item.component)) {
+    score += WEIGHT.doubled;
+    reason ??= { axis: 'doubled', component: item.component };
   }
 
   const pairs = pairing?.evenings ?? 0;
@@ -92,7 +130,13 @@ function weigh(item: Item, date: string, effort: Effort, vegGap: boolean, pairin
     reason ??= { axis: 'pair', partner: pairing!.partner };
   }
 
-  if (vegGap && item.vegetarian) {
+  const fills = item.component !== null && evening.missing.has(item.component);
+  if (fills) {
+    score += WEIGHT.fillsGap;
+    reason ??= { axis: 'gap', component: item.component! };
+  }
+
+  if (evening.vegGap && item.vegetarian) {
     score += WEIGHT.fillsVegGap;
     reason ??= { axis: 'veg' };
   }
@@ -103,18 +147,18 @@ function weigh(item: Item, date: string, effort: Effort, vegGap: boolean, pairin
   } else {
     // An evening three days ahead repeats as much as one three days back, so
     // the distance counts and the direction does not.
-    const days = daysBetween(item.last_used, date);
+    const days = daysBetween(item.last_used, evening.date);
     const apart = Math.abs(days);
     score +=
       apart >= LONG_AGO ? WEIGHT.longAgo : apart >= A_WHILE ? WEIGHT.aWhileAgo : apart < JUST_HAD ? WEIGHT.justHad : 0;
     reason ??= { axis: 'recency', days };
   }
 
-  return { item, reason, score, pairs };
+  return { item, reason, score, pairs, fills };
 }
 
 /** What the ranking knows. Only the item and its reason leave this file. */
-type Ranked = Suggestion & { score: number; pairs: number };
+type Ranked = Suggestion & { score: number; pairs: number; fills: boolean };
 
 function rank(date: string): Ranked[] {
   const plate = planBetween(date, date).get(date) ?? [];
@@ -122,15 +166,34 @@ function rank(date: string): Ranked[] {
   const items = listItems();
   const names = new Map(items.map((item) => [item.id, item.name]));
   const paired = pairings(plate, (id) => names.get(id) ?? '');
-  const effort = effortGrid()[weekday(date)]!;
-  // An empty evening has no gap yet — every evening starts without one, and a
-  // permanent bonus for meatless items would be a thumb on the scale.
-  const vegGap = plate.length > 0 && !vegetarianOk(plate);
+  const covered = new Set(plate.map((item) => item.component).filter((c) => c !== null));
+
+  const evening: Evening = {
+    date,
+    effort: effortGrid()[weekday(date)]!,
+    empty: plate.length === 0,
+    // An empty evening has no gap yet — every evening starts without one, and a
+    // permanent bonus for meatless items would be a thumb on the scale.
+    vegGap: plate.length > 0 && !vegetarianOk(plate),
+    covered,
+    // A plate that has not started is short of nothing, and neither is one a
+    // `whole` item has finished — that is all `whole` means.
+    missing: new Set(
+      plate.length === 0 || covered.has('whole') ? [] : WANTED.filter((part) => !covered.has(part)),
+    ),
+  };
 
   return items
     .filter((item) => !onPlate.has(item.id))
-    .map((item) => weigh(item, date, effort, vegGap, paired.get(item.id)))
-    .sort((a, b) => b.score - a.score || a.item.name.localeCompare(b.item.name, 'de'));
+    .map((item) => weigh(item, evening, paired.get(item.id)))
+    .sort(
+      (a, b) =>
+        b.score - a.score ||
+        // Where the score cannot tell two items apart, the one that has been
+        // away longest wins. A name is an arbitrary tiebreak; time is not.
+        (a.item.last_used ?? '').localeCompare(b.item.last_used ?? '') ||
+        a.item.name.localeCompare(b.item.name, 'de'),
+    );
 }
 
 /** The whole inventory minus what is already on the plate, best first. */
@@ -141,12 +204,13 @@ const plateOf = (date: string): Item[] => planBetween(date, date).get(date) ?? [
 
 /**
  * Fill an empty evening: the best item, then whatever that item has shared a
- * plate with before, until the plate stops pointing at anything. An evening
- * that already has something on it is left alone — clearing a day is how you
- * ask again.
+ * plate with before or the plate is still short of, until it points nowhere.
+ * An evening that already has something on it is left alone — clearing a day
+ * is how you ask again.
  *
- * How far it fills is decided by the history, not by a number of items: a
- * combination nobody has cooked yet gets one item, and that is honest.
+ * How far it fills is decided by the history and the plate, not by a number of
+ * items: a `whole` item is the evening, and a combination nobody has cooked
+ * out of items nobody has sorted gets one item. That is honest.
  */
 export function fillEvening(date: string): Item[] {
   if (plateOf(date).length > 0) return plateOf(date);
@@ -155,12 +219,13 @@ export function fillEvening(date: string): Item[] {
   if (!first) return [];
   addToPlan(date, first.id);
 
-  while (plateOf(date).length < PLATE_MAX) {
+  // A `whole` item is the evening; nothing else belongs on that plate.
+  while (first.component !== 'whole' && plateOf(date).length < PLATE_MAX) {
     // The best candidate the plate actually points at — not simply the best
     // one, or the evening would fill itself with unrelated favourites.
-    const partner = rank(date).find((candidate) => candidate.pairs > 0);
-    if (!partner) break;
-    addToPlan(date, partner.item.id);
+    const next = rank(date).find((candidate) => candidate.pairs > 0 || candidate.fills);
+    if (!next) break;
+    addToPlan(date, next.item.id);
   }
 
   // The one hard rule in the app, so it outranks the size of the plate.
