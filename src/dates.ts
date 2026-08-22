@@ -12,6 +12,9 @@ export const isIsoDate = (value: unknown): value is string =>
 
 export const addDays = (date: string, days: number): string => iso(utc(date) + days * DAY);
 
+/** Whole days from `from` to `to`; negative when `to` is the earlier one. */
+export const daysBetween = (from: string, to: string): number => Math.round((utc(to) - utc(from)) / DAY);
+
 /** 1 = Monday … 7 = Sunday. */
 export const weekday = (date: string): number => new Date(utc(date)).getUTCDay() || 7;
 

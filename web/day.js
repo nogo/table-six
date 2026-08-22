@@ -1,13 +1,30 @@
 // One day fills the screen. One tap adds, one tap removes, written
 // immediately — nothing to confirm, nothing to save.
 import { AurilElement, html } from './auril/index.js';
-import { addToPlan, createItem, removeFromPlan, setWeekdayEffort } from './api.js';
-import { loadItems, loadWeek, router, store } from './app.js';
+import { addToPlan, createItem, fillDay, removeFromPlan, setWeekdayEffort } from './api.js';
+import { loadItems, loadSuggestions, loadWeek, router, store } from './app.js';
 import { EFFORT_ORDER, WEEKDAYS, dayOfMonth, weekday } from './dates.js';
 
 const ROWS = 8; // plate and suggestions together — as many as fit without scrolling
 
 const EVENING = { kurz: 'kurzer Abend', normal: 'normaler Abend', entspannt: 'entspannter Abend' };
+
+/**
+ * The server ranks and names the axis that spoke; the German is the view's
+ * job, like every other word the family reads. Never a number — while the log
+ * is this thin a score would be a bogus one.
+ */
+/** @type {Record<string, (reason: any) => string>} */
+const REASON = {
+  effort: (reason) => `zu aufwendig für ${reason.effort}`,
+  veg: () => 'macht es vegetarisch',
+  fresh: () => 'noch nie geplant',
+  recency: (reason) =>
+    reason.days > 0 ? `vor ${reason.days} ${reason.days === 1 ? 'Tag' : 'Tagen'}` : 'schon eingeplant',
+};
+
+/** @param {any} reason @returns {string} */
+const reasonText = (reason) => (reason && REASON[reason.axis]?.(reason)) || '';
 
 class DayFocus extends AurilElement {
   /** Search text — local state: nobody else needs to know what is being typed. */
@@ -16,10 +33,12 @@ class DayFocus extends AurilElement {
   onConnect() {
     this.watch((s) => s.week, () => this.update());
     this.watch((s) => s.items, () => this.update());
+    this.watch((s) => s.suggestions, () => this.update());
 
     this.delegate('click', '.back, .done', () => router.go('/'));
 
     this.delegate('click', '.add', (_, el) => this.#write(addToPlan(this.date, this.#id(el))));
+    this.delegate('click', '.fill', () => this.#write(fillDay(this.date)));
     this.delegate('click', '.x', (_, el) => this.#write(removeFromPlan(this.date, this.#id(el))));
 
     // The level belongs to the weekday: tapping it moves every Wednesday.
@@ -42,6 +61,7 @@ class DayFocus extends AurilElement {
 
     loadWeek();
     loadItems();
+    loadSuggestions(this.date);
   }
 
   get date() {
@@ -60,7 +80,7 @@ class DayFocus extends AurilElement {
   /** Every write is a request; the week and the inventory come back from the server. */
   async #write(pending) {
     await pending;
-    await Promise.all([loadWeek(), loadItems()]);
+    await Promise.all([loadWeek(), loadItems(), loadSuggestions(this.date)]);
   }
 
   async #create() {
@@ -76,12 +96,13 @@ class DayFocus extends AurilElement {
     input?.focus();
   }
 
-  /** @param {any} item @param {'x' | 'add'} action */
-  #row(item, action) {
+  /** @param {any} item @param {'x' | 'add'} action @param {string} [reason] */
+  #row(item, action, reason = '') {
     const [prefix, mark] = action === 'x' ? ['plate', '✕'] : ['sug', '+'];
     return html`
       <button class="row ${action}" id="${prefix}-${item.id}" data-id="${item.id}">
         <span class="grow">${item.name}</span>
+        ${reason && html`<span class="reason">${reason}</span>`}
         ${item.vegetarian && html`<span class="mark">🌱</span>`}
         <span class="${action}-mark">${mark}</span>
       </button>`;
@@ -93,9 +114,14 @@ class DayFocus extends AurilElement {
 
     const query = this.#query.trim().toLowerCase();
     const planned = new Set(day.items.map((/** @type {any} */ item) => item.id));
-    const suggestions = store.state.items
-      .filter((item) => !planned.has(item.id) && item.name.toLowerCase().includes(query))
-      .slice(0, Math.max(3, ROWS - day.items.length)); // a full plate gives room back
+    // The list is ranked for one date; until the new one arrives, show none.
+    const ranked = store.state.suggestions.date === this.date ? store.state.suggestions.list : [];
+    // Nothing to propose on an evening that already has something on it —
+    // clearing the day is how you ask again.
+    const canFill = day.items.length === 0 && ranked.length > 0 && !query;
+    const suggestions = ranked
+      .filter(({ item }) => !planned.has(item.id) && item.name.toLowerCase().includes(query))
+      .slice(0, Math.max(3, ROWS - day.items.length - (canFill ? 1 : 0))); // a full plate gives room back
     const known = store.state.items.some((item) => item.name.toLowerCase() === query);
     const tooMuch = day.items.filter((/** @type {any} */ item) => EFFORT_ORDER.indexOf(item.effort) > EFFORT_ORDER.indexOf(day.effort));
 
@@ -116,10 +142,12 @@ class DayFocus extends AurilElement {
       <main class="column">
         ${day.items.map((/** @type {any} */ item) => this.#row(item, 'x'))}
         <p class="section">Vorschläge</p>
-        ${suggestions.map((item) => this.#row(item, 'add'))}
+        ${canFill && html`
+          <button class="row fill"><span class="grow">Abend vorschlagen</span><span class="add-mark">+</span></button>`}
+        ${suggestions.map(({ item, reason }) => this.#row(item, 'add', reasonText(reason)))}
         ${query && !known && html`
           <button class="row new"><span class="grow">„${this.#query.trim()}“ anlegen</span><span class="add-mark">+</span></button>`}
-        ${suggestions.length === 0 && !query && html`<p class="hint">Der Bestand ist noch leer.</p>`}
+        ${ranked.length === 0 && !query && html`<p class="hint">Der Bestand ist noch leer.</p>`}
       </main>
 
       <div class="bar">

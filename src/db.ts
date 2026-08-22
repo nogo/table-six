@@ -7,11 +7,21 @@ export type Effort = 'kurz' | 'normal' | 'entspannt';
 /** Ascending: an evening blows the day when its hardest item ranks higher. */
 export const EFFORT_ORDER: Effort[] = ['kurz', 'normal', 'entspannt'];
 
+/**
+ * What an item contributes to a plate. `whole` is an evening on its own —
+ * Lasagne, Reste, kaltes Abendbrot — and wants nothing beside it. Null until
+ * someone says otherwise: an unsorted item is normal, not a defect, and it
+ * ranks like any other.
+ */
+export type Component = 'base' | 'vegetable' | 'protein' | 'extra' | 'whole';
+export const COMPONENTS: Component[] = ['base', 'vegetable', 'protein', 'extra', 'whole'];
+
 export type Item = {
   id: number;
   name: string;
   vegetarian: boolean;
   effort: Effort;
+  component: Component | null;
   /** ISO date of the latest evening this item is planned for, or null. */
   last_used: string | null;
 };
@@ -28,6 +38,7 @@ db.exec(`
     name       TEXT NOT NULL COLLATE NOCASE UNIQUE,
     vegetarian INTEGER NOT NULL DEFAULT 0,
     effort     TEXT NOT NULL DEFAULT 'normal' CHECK (effort IN ('kurz', 'normal', 'entspannt')),
+    component  TEXT CHECK (component IN ('base', 'vegetable', 'protein', 'extra', 'whole')),
     created_at TEXT NOT NULL DEFAULT (datetime('now'))
   );
 
@@ -48,27 +59,44 @@ db.exec(`
   );
 `);
 
+// `CREATE TABLE IF NOT EXISTS` leaves a table that is already there alone, so
+// a column that arrives later needs its own step. The family's database is
+// older than `component`.
+const hasColumn = (table: string, column: string): boolean =>
+  db.query('SELECT 1 FROM pragma_table_info(?) WHERE name = ?').get(table, column) !== null;
+
+if (!hasColumn('items', 'component')) {
+  db.exec("ALTER TABLE items ADD COLUMN component TEXT CHECK (component IN ('base', 'vegetable', 'protein', 'extra', 'whole'))");
+}
+
 // ── items ────────────────────────────────────────────────────────────────────
 
 const ITEM_COLUMNS = `
-  items.id, items.name, items.vegetarian, items.effort,
+  items.id, items.name, items.vegetarian, items.effort, items.component,
   (SELECT MAX(plan.date) FROM plan WHERE plan.item_id = items.id) AS last_used
 `;
 
-type ItemRow = { id: number; name: string; vegetarian: number; effort: Effort; last_used: string | null };
+type ItemRow = {
+  id: number;
+  name: string;
+  vegetarian: number;
+  effort: Effort;
+  component: Component | null;
+  last_used: string | null;
+};
 
 const toItem = (row: ItemRow): Item => ({ ...row, vegetarian: row.vegetarian === 1 });
 
-/** The inventory, most recently planned first — that is the suggestion order. */
+/** The inventory, most recently planned first — the order `Bestand` shows. */
 const listItemsStmt = db.query<ItemRow, []>(
   `SELECT ${ITEM_COLUMNS} FROM items ORDER BY last_used DESC NULLS LAST, items.name COLLATE NOCASE`,
 );
 const getItemStmt = db.query<ItemRow, [number]>(`SELECT ${ITEM_COLUMNS} FROM items WHERE items.id = ?`);
-const insertItemStmt = db.query<{ id: number }, [string, number, Effort]>(
-  'INSERT INTO items (name, vegetarian, effort) VALUES (?, ?, ?) RETURNING id',
+const insertItemStmt = db.query<{ id: number }, [string, number, Effort, Component | null]>(
+  'INSERT INTO items (name, vegetarian, effort, component) VALUES (?, ?, ?, ?) RETURNING id',
 );
-const updateItemStmt = db.query<null, [string, number, Effort, number]>(
-  'UPDATE items SET name = ?, vegetarian = ?, effort = ? WHERE id = ?',
+const updateItemStmt = db.query<null, [string, number, Effort, Component | null, number]>(
+  'UPDATE items SET name = ?, vegetarian = ?, effort = ?, component = ? WHERE id = ?',
 );
 const deleteItemStmt = db.query<null, [number]>('DELETE FROM items WHERE id = ?');
 
@@ -79,13 +107,19 @@ export const getItem = (id: number): Item | null => {
   return row ? toItem(row) : null;
 };
 
-export function createItem(name: string, vegetarian: boolean, effort: Effort): Item {
-  const { id } = insertItemStmt.get(name, vegetarian ? 1 : 0, effort)!;
+export function createItem(name: string, vegetarian: boolean, effort: Effort, component: Component | null = null): Item {
+  const { id } = insertItemStmt.get(name, vegetarian ? 1 : 0, effort, component)!;
   return getItem(id)!;
 }
 
-export function updateItem(id: number, name: string, vegetarian: boolean, effort: Effort): Item | null {
-  updateItemStmt.run(name, vegetarian ? 1 : 0, effort, id);
+export function updateItem(
+  id: number,
+  name: string,
+  vegetarian: boolean,
+  effort: Effort,
+  component: Component | null,
+): Item | null {
+  updateItemStmt.run(name, vegetarian ? 1 : 0, effort, component, id);
   return getItem(id);
 }
 

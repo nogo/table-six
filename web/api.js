@@ -21,10 +21,14 @@ export const getWeek = (start) => request(`/api/week${start ? `?start=${start}` 
 
 export const getItems = () => request('/api/items');
 
-/** @param {string} name @param {{vegetarian?: boolean, effort?: string}} [fields] */
+/** The inventory ranked for one evening, each item with its reason.
+ *  @param {string} date */
+export const getSuggestions = (date) => request(`/api/suggestions/${date}`);
+
+/** @param {string} name @param {{vegetarian?: boolean, effort?: string, component?: string | null}} [fields] */
 export const createItem = (name, fields = {}) => send('POST', '/api/items', { name, ...fields });
 
-/** @param {number} id @param {{name?: string, vegetarian?: boolean, effort?: string}} fields */
+/** @param {number} id @param {{name?: string, vegetarian?: boolean, effort?: string, component?: string | null}} fields */
 export const patchItem = (id, fields) => send('PATCH', `/api/items/${id}`, fields);
 
 /** @param {number} id */
@@ -35,6 +39,10 @@ export const mergeItem = (id, into) => send('POST', `/api/items/${id}/merge`, { 
 
 /** @param {string} date @param {number} itemId */
 export const addToPlan = (date, itemId) => send('PUT', `/api/plan/${date}/${itemId}`);
+
+/** Let the app propose the evening. Only ever fills a day that is still empty.
+ *  @param {string} date */
+export const fillDay = (date) => send('POST', `/api/plan/${date}/fill`);
 
 /** @param {string} date @param {number} itemId */
 export const removeFromPlan = (date, itemId) => send('DELETE', `/api/plan/${date}/${itemId}`);

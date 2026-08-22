@@ -1,6 +1,6 @@
 // Bootstrap: one store, one router, one screen element that swaps the view.
 import { AurilElement, Router, Store, html } from './auril/index.js';
-import { getItems, getWeek } from './api.js';
+import { getItems, getSuggestions, getWeek } from './api.js';
 import { today, weekStart } from './dates.js';
 
 export const store = new Store({
@@ -10,8 +10,11 @@ export const store = new Store({
   weekStart: weekStart(today()),
   /** The week as the server built it, or null until the first load. */
   week: /** @type {any} */ (null),
-  /** The inventory, most recently planned first — the suggestion order. */
+  /** The inventory, most recently planned first — the order `Bestand` shows. */
   items: /** @type {any[]} */ ([]),
+  /** The ranked inventory for the day on screen. Kept with the date it was
+   *  ranked for, so stepping to the next day never shows the last one's order. */
+  suggestions: /** @type {{ date: string, list: any[] }} */ ({ date: '', list: [] }),
   /** The last request did not arrive. Shown, never acted on. */
   offline: false,
 });
@@ -34,6 +37,21 @@ export async function loadWeek(start = store.state.weekStart) {
 export async function loadItems() {
   try {
     store.set({ items: await getItems(), offline: false });
+  } catch {
+    store.set({ offline: true });
+  }
+}
+
+/**
+ * The ranking for one evening. Off the day screen there is nothing to rank, so
+ * an absent date is a no-op rather than a caller's problem.
+ * @param {string} [date] ISO date
+ */
+export async function loadSuggestions(date) {
+  if (!date) return;
+  try {
+    const list = await getSuggestions(date);
+    if (store.state.route.params.date === date) store.set({ suggestions: { date, list }, offline: false });
   } catch {
     store.set({ offline: true });
   }
