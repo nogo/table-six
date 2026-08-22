@@ -18,8 +18,8 @@ width changes the layout, never the app. Exactly one breakpoint (~48 rem):
   The board is a phone artifact; seven rows stretched across a monitor are
   harder to read, not easier.
 - **`Bestand` is the one view that takes the width.** Above the breakpoint its
-  rows use the space — controls inline instead of stacked, many items
-  comparable at once. Below it the same rows stack and stay fully usable.
+  rows use the space and its editor lays out on one line instead of two — many
+  items comparable at once, the same editor either way.
 - **Targets stay 48 px at every width.** Nothing shrinks because a mouse showed
   up.
 - **Hover is never the only cue.** The phone has none.
@@ -104,8 +104,13 @@ it folds the many spellings of an item together without losing an evening.
 - **Every action works with a thumb.** The keyboard is an accelerator where
   there is one: Enter submits, Esc cancels the open form. No gesture without a
   visible twin.
+- **A row is never edited in place. The bar becomes its editor.** The list
+  keeps its shape, so nothing moves under the thumb and no control ends up
+  behind the bar; the open row stays marked, and the name in the field says
+  which item is meant.
 - **Filters and search stay in reach** while the list scrolls — they are how a
-  long inventory becomes finishable in sittings.
+  long inventory becomes finishable in sittings, and the editor takes their
+  place only while a row is open.
 - It may scroll. It is a list and admits to being one.
 
 ## Colour

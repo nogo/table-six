@@ -232,32 +232,40 @@ main { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 }
 .filters button[aria-pressed="true"] { color: var(--brass); }
 
-.item-controls { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 0 12px; }
+/* Editing sits in the bar, not in the row: the list keeps its shape while a
+   row is open, and the controls stay in the thumb zone. */
+.bar .editor { flex-direction: column; padding-top: 8px; padding-bottom: 8px; }
+.editor .close { flex: 0 0 auto; min-height: 48px; padding: 0 12px; color: var(--brass); }
+
+.item-controls { display: flex; flex-wrap: wrap; gap: 8px; }
 .item-controls button {
-  min-height: 40px;
-  padding: 0 10px;
+  /* `.bar button` stretches; these size to their label and wrap instead —
+     `zusammenführen` and `kurz` are not the same width and should not be. */
+  flex: 0 1 auto;
+  min-height: 48px;
+  padding: 0 12px;
   font-size: 13px;
   color: var(--soft);
   background: var(--surface);
 }
 .item-controls button:active { color: var(--bone); }
 .item-controls .danger:active { color: var(--brass); }
-.item-controls input { flex: 1; min-width: 8rem; background: var(--surface); padding: 0 10px; min-height: 40px; }
 .item .row .effort { padding-left: 12px; }
 .item .row { border-top: 0; }
+.item .row[aria-expanded="true"] { background: var(--surface); }
 .item { border-top: 1px solid var(--line); }
 .done-inline { color: var(--brass); padding: 0 8px; min-height: 40px; }
 
 .list { padding-bottom: 24px; }
 
 /* Bestand is the one view that takes the width: above the breakpoint the
-   controls sit inline with the row instead of under it. */
+   editor lays out on one line instead of two. */
 @media (min-width: 48rem) {
   .wide { max-width: 60rem; }
-  .wide .item { display: flex; align-items: center; gap: 16px; }
-  .wide .item .row { border-top: 0; flex: 1; }
-  .wide .item-controls { padding: 0; flex-wrap: nowrap; }
-  .wide .item { border-top: 1px solid var(--line); }
+  /* The width buys one line instead of two — the same editor, not another one. */
+  .bar .editor { flex-direction: row; align-items: center; }
+  .editor .search { flex: 1; }
+  .editor .item-controls { flex-wrap: nowrap; }
 }
 
 /* The screen elements are frames, not boxes: their children lay out in body. */

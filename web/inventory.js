@@ -54,6 +54,9 @@ class ItemInventory extends AurilElement {
       this.#merging = null;
       this.#confirming = null;
       this.update();
+      // The bar grew by a line or two, which can leave the row behind it.
+      // `nearest` moves by the minimum and does nothing when it already fits.
+      if (this.#editing === id) this.querySelector(`#item-${id}`)?.scrollIntoView({ block: 'nearest' });
     });
 
     this.delegate('click', '.veg', (_, el) => {
@@ -78,6 +81,10 @@ class ItemInventory extends AurilElement {
 
     this.delegate('click', '.merge', (_, el) => {
       this.#merging = this.#intent(this.#id(el));
+      this.#editing = null;
+      this.update();
+    });
+    this.delegate('click', '.close', () => {
       this.#editing = null;
       this.update();
     });
@@ -183,7 +190,7 @@ class ItemInventory extends AurilElement {
     const source = this.#merging?.id === item.id;
     return html`
       <div class="item" id="item-${item.id}" data-id="${item.id}">
-        <button class="row open">
+        <button class="row open" aria-expanded="${open}">
           <span class="grow">${item.name}</span>
           ${source
             ? html`<span class="reason">wird aufgelöst</span>`
@@ -191,15 +198,30 @@ class ItemInventory extends AurilElement {
           ${item.vegetarian && html`<span class="mark">🌱</span>`}
           <span class="effort">${item.effort}</span>
         </button>
-        ${open && html`
-          <div class="item-controls">
-            <input class="rename" value="${item.name}" aria-label="Name" autocomplete="off" enterkeyhint="done">
-            <button class="veg">${item.vegetarian ? '🌱 vegetarisch' : 'mit Fleisch'}</button>
-            <button class="cycle">${item.effort}</button>
-            <button class="role">${componentName(item.component)}</button>
-            <button class="merge">zusammenführen</button>
-            <button class="danger delete">${this.#confirming?.id === item.id ? 'wirklich löschen?' : 'löschen'}</button>
-          </div>`}
+      </div>`;
+  }
+
+  /**
+   * Editing happens in the bar, never in the row. The list keeps its shape
+   * while a row is open, so nothing moves under the thumb, and the controls
+   * are where the thumb already is. `data-id` is what the handlers read, so
+   * they do not care that the buttons sit somewhere else now.
+   * @param {any} item
+   */
+  #editor(item) {
+    return html`
+      <div class="column wide editor" data-id="${item.id}">
+        <label class="search">
+          <input class="rename" value="${item.name}" aria-label="Name" autocomplete="off" enterkeyhint="done">
+          <button class="close" type="button">fertig</button>
+        </label>
+        <div class="item-controls">
+          <button class="veg">${item.vegetarian ? '🌱 vegetarisch' : 'mit Fleisch'}</button>
+          <button class="cycle">${item.effort}</button>
+          <button class="role">${componentName(item.component)}</button>
+          <button class="merge">zusammenführen</button>
+          <button class="danger delete">${this.#confirming?.id === item.id ? 'wirklich löschen?' : 'löschen'}</button>
+        </div>
       </div>`;
   }
 
@@ -210,6 +232,9 @@ class ItemInventory extends AurilElement {
       .filter((item) => item.name.toLowerCase().includes(query));
     const known = store.state.items.some((item) => item.name.toLowerCase() === query);
     const merging = this.#merging;
+    // The row being edited need not be one the filter keeps: the bar shows it
+    // either way, and that is where it is edited.
+    const editing = this.#editing === null ? null : this.#item(this.#editing);
 
     return html`
       <header class="head column wide">
@@ -228,17 +253,20 @@ class ItemInventory extends AurilElement {
       </main>
 
       <div class="bar">
-        <form class="column wide foot search-form">
-          <div class="filters">
-            ${FILTERS.map(([key, label]) => html`
-              <button class="filter" type="button" data-filter="${key}" aria-pressed="${this.#filter === key}">${label}</button>`)}
-          </div>
-          <label class="search">
-            <span class="soft" aria-hidden="true">⌕</span>
-            <input class="query" value="${this.#query}" placeholder="suchen oder neu …"
-                   autocomplete="off" enterkeyhint="done" aria-label="Item suchen oder anlegen">
-          </label>
-        </form>
+        ${editing
+          ? this.#editor(editing)
+          : html`
+            <form class="column wide foot search-form">
+              <div class="filters">
+                ${FILTERS.map(([key, label]) => html`
+                  <button class="filter" type="button" data-filter="${key}" aria-pressed="${this.#filter === key}">${label}</button>`)}
+              </div>
+              <label class="search">
+                <span class="soft" aria-hidden="true">⌕</span>
+                <input class="query" value="${this.#query}" placeholder="suchen oder neu …"
+                       autocomplete="off" enterkeyhint="done" aria-label="Item suchen oder anlegen">
+              </label>
+            </form>`}
       </div>`;
   }
 }
