@@ -15,14 +15,20 @@ system comes after it, and is used before the next thing is started.
 
 ## Stack
 
-**Bun + SQLite + TypeScript, auril.js on the front.** One language, one
-database, one process, no build step.
+**Bun 1.4 + SQLite + TypeScript, auril.js on the front.** One language, one
+database, one process, no build step. Before reaching for anything, check
+whether the runtime already has it — Bun ships more every release.
 
 - **No runtime dependencies.** `@types/*` are the only entries in
   `package.json`. Stdlib beats a library beats a framework; a new dependency is
   a question, not a commit.
 - **Server:** a single `Bun.serve` in `src/server.ts` — JSON API, static files
-  and the websocket in one place. No framework, no router library.
+  and the websocket in one place. No framework, no router library. The route
+  table *is* the server, there is no `fetch` handler: the API routes, one shell
+  route per screen the client router owns, `/ws`, and `web/` as a `{ dir }`
+  route that carries `Content-Type`, `ETag`, `Last-Modified`, `304` and `Range`
+  on its own. Nothing falls through a `dir` route — an unknown path is a 404,
+  and a new client route needs its shell route here.
 - **Database:** `bun:sqlite`, WAL, foreign keys on. Prepared statements as
   module-level constants, values always bound, never interpolated. The schema
   lives in `src/db.ts` and is created with `CREATE TABLE IF NOT EXISTS`.
@@ -60,6 +66,8 @@ docs/     project.md, ui.md — the guardrails
 test/     bun test, real behaviour, not smoke
 ```
 
-Start with `bun src/server.ts` (port 4173), open it on the phone over the LAN.
-`bun test` runs the real behaviour; the database lives in `data/` and is not
-in git.
+Start with `bun src/server.ts` (port 4173), open it on the phone over the LAN;
+`bun --watch src/server.ts` while editing. `bun test` runs the real behaviour
+— the whole suite is well under a second, so it runs in full, never filtered.
+The database lives in `data/` and is not in git; `bun repl` is the way to ask
+it a real question instead of guessing (`import { db } from './src/db.ts'`).

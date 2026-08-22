@@ -7,25 +7,26 @@ const WEB = new URL('../web/', import.meta.url).pathname;
 const PORT = Number(process.env.PORT ?? 4173);
 const TOPIC = 'table-six';
 
-/** Serve web/ as-is. `/` and unknown paths hand out the shell — the router owns them. */
-async function serveStatic(pathname: string): Promise<Response> {
-  const path = pathname.replace(/\/+$/, '');
-  const candidate = file(WEB + (path.includes('..') ? '' : path.slice(1)));
-  if (path && (await candidate.exists())) return new Response(candidate);
-  return new Response(file(WEB + 'index.html'), { headers: { 'content-type': 'text/html; charset=utf-8' } });
-}
+/** The screens the client router owns: each one is the shell, it takes over from there. */
+const shell = () => new Response(file(WEB + 'index.html'));
 
 const server = Bun.serve({
   port: PORT,
   idleTimeout: 60,
-  routes,
 
-  fetch(request, server) {
-    const { pathname } = new URL(request.url);
-    if (pathname === '/ws') {
-      return server.upgrade(request) ? undefined : new Response('upgrade failed', { status: 400 });
-    }
-    return serveStatic(pathname);
+  routes: {
+    ...routes,
+
+    '/day/:date': shell,
+    '/inventory': shell,
+
+    '/ws': (request, server) =>
+      server.upgrade(request) ? undefined : new Response('upgrade failed', { status: 400 }),
+
+    // web/ as it lies on disk, `/` included: Bun sends the file and the
+    // ETag, Last-Modified and 304 with it, so a reload in the kitchen costs
+    // one request per file and no bytes. Anything else is a 404.
+    '/*': { dir: WEB },
   },
 
   websocket: {
