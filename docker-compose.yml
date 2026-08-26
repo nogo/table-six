@@ -1,0 +1,23 @@
+# Table Six on the Pi, at /srv/table6 — this file and data/, nothing else. The
+# image is built on the laptop and shipped with `mise run deploy`; the Pi never
+# sees the source and never builds.
+services:
+  table-six:
+    image: table-six
+    # The image arrives over ssh, so there is no registry to fall back to.
+    pull_policy: never
+    container_name: table-six
+    restart: unless-stopped
+    # The kitchen's clock: the server derives "today" from the local timezone
+    # (src/dates.ts), and a container is UTC unless told otherwise — without
+    # this the week rolls over two hours early.
+    environment:
+      TZ: Europe/Berlin
+    # 9000 on the Pi, 4173 inside — the container keeps the port the app uses
+    # in development, the Pi decides what the kitchen dials.
+    ports:
+      - '9000:4173'
+    # The family's database. Create it as uid 1000, the image's `bun` user:
+    #   sudo mkdir -p /srv/table6/data && sudo chown 1000:1000 /srv/table6/data
+    volumes:
+      - ./data:/data
