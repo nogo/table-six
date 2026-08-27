@@ -105,20 +105,6 @@ const wasPlannedStmt = db.query<{ one: number }, [number]>('SELECT 1 AS one FROM
  */
 export const wasPlanned = (id: number): boolean => wasPlannedStmt.get(id) !== null;
 
-const mergePlanStmt = db.query<null, [number, number]>(
-  // Keep the evening: the target takes over every date the source was on,
-  // unless it is already there.
-  `INSERT OR IGNORE INTO plan (date, item_id, position)
-   SELECT date, ?, position FROM plan WHERE item_id = ?`,
-);
-
-/** Fold `sourceId` into `targetId`: every evening survives, the source is gone. */
-export const mergeItems = db.transaction((sourceId: number, targetId: number): Item | null => {
-  mergePlanStmt.run(targetId, sourceId);
-  deleteItemStmt.run(sourceId);
-  return getItem(targetId);
-});
-
 // ── plan ─────────────────────────────────────────────────────────────────────
 
 const planRangeStmt = db.query<ItemRow & { date: string }, [string, string]>(

@@ -1,12 +1,11 @@
 // The inventory — `Bestand` on screen. Not a planning screen: this is where
-// the item list is built and kept honest — create, rename, merge, delete, mark vegetarian, set the level.
-// Merging is the important one: it folds the many spellings of an item
-// together without losing an evening.
+// the item list is built and kept honest — create, rename, delete, mark
+// vegetarian, set the role and the level.
 import { AurilElement, html } from './auril/index.js';
-import { createItem, deleteItem, mergeItem, patchItem } from './api.js';
-import { loadItems, loadWeek, router, store } from './app.js';
+import { createItem, deleteItem, patchItem } from './api.js';
+import { loadItems, loadWeek, store } from './app.js';
 import { EFFORT_ORDER } from './dates.js';
-import { COMPONENT_ORDER, componentName } from './items.js';
+import { COMPONENT_ORDER, componentName, effortName } from './items.js';
 
 /** @typedef {{ id: number, name: string }} Intent an item a pending action refers to */
 
@@ -31,12 +30,11 @@ class ItemInventory extends AurilElement {
   /** The row that is open for editing — one at a time. */
   #editing = /** @type {number | null} */ (null);
   /**
-   * The two pending actions carry the item's name as well as its id. SQLite
-   * hands a deleted id to the next new item, so an id alone can come back
-   * pointing at something else — and a delete that was armed on one item would
-   * fire on the other without ever showing its question.
+   * The armed delete carries the item's name as well as its id. SQLite hands a
+   * deleted id to the next new item, so an id alone can come back pointing at
+   * something else — and a delete that was armed on one item would fire on the
+   * other without ever showing its question.
    */
-  #merging = /** @type {Intent | null} */ (null);
   #confirming = /** @type {Intent | null} */ (null);
 
   onConnect() {
@@ -45,13 +43,9 @@ class ItemInventory extends AurilElement {
       this.update();
     });
 
-    this.delegate('click', '.back', () => router.go('/'));
-
     this.delegate('click', '.open', (_, el) => {
       const id = this.#id(el);
-      if (this.#merging && this.#merging.id !== id) return this.#write(mergeItem(this.#merging.id, id));
       this.#editing = this.#editing === id ? null : id;
-      this.#merging = null;
       this.#confirming = null;
       this.update();
       // The bar grew by a line or two, which can leave the row behind it.
@@ -85,17 +79,8 @@ class ItemInventory extends AurilElement {
       if (item) this.#write(patchItem(item.id, { retired: !item.retired }));
     });
 
-    this.delegate('click', '.merge', (_, el) => {
-      this.#merging = this.#intent(this.#id(el));
-      this.#editing = null;
-      this.update();
-    });
     this.delegate('click', '.close', () => {
       this.#editing = null;
-      this.update();
-    });
-    this.delegate('click', '.cancel-merge', () => {
-      this.#merging = null;
       this.update();
     });
 
@@ -130,8 +115,9 @@ class ItemInventory extends AurilElement {
       this.#query = /** @type {HTMLInputElement} */ (el).value;
       this.update();
     });
-    this.delegate('click', '.filter', (_, el) => {
-      this.#filter = el.getAttribute('data-filter') ?? 'all';
+    this.delegate('click', '.filter', () => {
+      const at = FILTERS.findIndex(([key]) => key === this.#filter);
+      this.#filter = FILTERS[(at + 1) % FILTERS.length][0];
       this.update();
     });
     this.delegate('submit', '.search-form', (event) => {
@@ -139,6 +125,9 @@ class ItemInventory extends AurilElement {
       this.#create();
     });
     this.delegate('click', '.new', () => this.#create());
+    // The field keeps the focus: a blur here would drop the keyboard and reflow
+    // the bar out from under the thumb before the click lands.
+    this.delegate('mousedown', '.new', (event) => event.preventDefault());
 
     loadItems();
   }
@@ -169,14 +158,12 @@ class ItemInventory extends AurilElement {
     /** @param {Intent | null} intent */
     const gone = (intent) => intent !== null && nameOf.get(intent.id) !== intent.name;
     if (gone(this.#confirming)) this.#confirming = null;
-    if (gone(this.#merging)) this.#merging = null;
     if (this.#editing !== null && !nameOf.has(this.#editing)) this.#editing = null;
   }
 
   /** Names travel onto the board, so the week is refetched with the list. */
   async #write(pending) {
     await pending;
-    this.#merging = null;
     await Promise.all([loadItems(), loadWeek()]);
   }
 
@@ -193,10 +180,9 @@ class ItemInventory extends AurilElement {
   /**
    * The one thing a row says about itself beside its name. A paused item's
    * part does not matter — it is not being offered for a plate.
-   * @param {any} item @param {boolean} source
+   * @param {any} item
    */
-  #note(item, source) {
-    if (source) return 'wird aufgelöst';
+  #note(item) {
     if (item.retired) return 'pausiert';
     return item.component ? componentName(item.component) : '';
   }
@@ -204,14 +190,13 @@ class ItemInventory extends AurilElement {
   /** @param {any} item */
   #row(item) {
     const open = this.#editing === item.id;
-    const source = this.#merging?.id === item.id;
     return html`
       <div class="item" id="item-${item.id}" data-id="${item.id}">
         <button class="row open" aria-expanded="${open}">
           <span class="grow">${item.name}</span>
-          ${this.#note(item, source) && html`<span class="reason">${this.#note(item, source)}</span>`}
+          ${this.#note(item) && html`<span class="reason">${this.#note(item)}</span>`}
           ${item.vegetarian && html`<span class="mark">🌱</span>`}
-          <span class="effort">${item.effort}</span>
+          <span class="effort">${effortName(item.effort)}</span>
         </button>
       </div>`;
   }
@@ -245,9 +230,8 @@ class ItemInventory extends AurilElement {
         </label>
         <div class="item-controls">
           <button class="veg">${item.vegetarian ? '🌱 vegetarisch' : 'mit Fleisch'}</button>
-          <button class="cycle">${item.effort}</button>
+          <button class="cycle">${effortName(item.effort)}</button>
           <button class="role">${componentName(item.component)}</button>
-          <button class="merge">zusammenführen</button>
           ${this.#retireOrDelete(item)}
         </div>
       </div>`;
@@ -259,43 +243,39 @@ class ItemInventory extends AurilElement {
       .filter(MATCHES[/** @type {'all'} */ (this.#filter)] ?? MATCHES.all)
       .filter((item) => item.name.toLowerCase().includes(query));
     const known = store.state.items.some((item) => item.name.toLowerCase() === query);
-    const merging = this.#merging;
     // The row being edited need not be one the filter keeps: the bar shows it
     // either way, and that is where it is edited.
     const editing = this.#editing === null ? null : this.#item(this.#editing);
+    const filter = FILTERS.find(([key]) => key === this.#filter) ?? FILTERS[0];
 
     return html`
       <header class="head column wide">
-        <button class="step back" aria-label="Zurück zur Woche">‹</button>
-        <h1 class="caps">Bestand <span class="soft num">${store.state.items.length}</span></h1>
+        <div class="head-line">
+          <img class="logo" src="/icon.svg" alt="" width="26" height="26">
+          <h1 class="caps">Bestand <span class="soft num">${store.state.items.length}</span></h1>
+          <a class="action" href="/">Woche</a>
+        </div>
+        <form class="head-line search-form">
+          <label class="search">
+            <span class="soft" aria-hidden="true">⌕</span>
+            <input class="query" value="${this.#query}" placeholder="suchen oder neu …"
+                   autocomplete="off" enterkeyhint="done" aria-label="Item suchen oder anlegen">
+            ${query && !known && html`<button class="new" type="button">anlegen</button>`}
+          </label>
+          <button class="action filter ${this.#filter === 'all' ? '' : 'on'}" type="button"
+                  aria-label="Filter, zeigt gerade: ${filter[1]}">${filter[1]}</button>
+        </form>
       </header>
 
       <main class="column wide list">
-        ${merging && html`
-          <p class="hint">„${merging.name}“ in welches Item? Tippe es an. <button class="cancel-merge done-inline">abbrechen</button></p>`}
         ${items.map((item) => this.#row(item))}
-        ${query && !known && html`
-          <button class="row new"><span class="grow">„${this.#query.trim()}“ anlegen</span><span class="add-mark">+</span></button>`}
-        ${items.length === 0 && !query && html`
-          <p class="hint">Noch nichts drin. Was esst ihr? Unten eintippen.</p>`}
+        ${items.length === 0 && html`
+          <p class="hint">${query || this.#filter !== 'all'
+            ? 'Nichts gefunden.'
+            : 'Noch nichts drin. Was esst ihr? Oben eintippen.'}</p>`}
       </main>
 
-      <div class="bar">
-        ${editing
-          ? this.#editor(editing)
-          : html`
-            <form class="column wide foot search-form">
-              <div class="filters">
-                ${FILTERS.map(([key, label]) => html`
-                  <button class="filter" type="button" data-filter="${key}" aria-pressed="${this.#filter === key}">${label}</button>`)}
-              </div>
-              <label class="search">
-                <span class="soft" aria-hidden="true">⌕</span>
-                <input class="query" value="${this.#query}" placeholder="suchen oder neu …"
-                       autocomplete="off" enterkeyhint="done" aria-label="Item suchen oder anlegen">
-              </label>
-            </form>`}
-      </div>`;
+      ${editing && html`<div class="bar">${this.#editor(editing)}</div>`}`;
   }
 }
 customElements.define('item-inventory', ItemInventory);

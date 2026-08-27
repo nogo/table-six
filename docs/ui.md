@@ -20,6 +20,10 @@ width changes the layout, never the app. Exactly one breakpoint (~48 rem):
 - **`Bestand` is the one view that takes the width.** Above the breakpoint its
   rows use the space and its editor lays out on one line instead of two — many
   items comparable at once, the same editor either way.
+- **The header is the app bar.** The mark, what the screen is, and the screen's
+  own actions. The board is one line at every width — `KW 35`, `‹ ● ›`,
+  `Bestand` — and gives up the date range on a phone before it gives up a
+  48 px target; `Bestand` takes a second line for its search field.
 - **Targets stay 48 px at every width.** Nothing shrinks because a mouse showed
   up.
 - **Hover is never the only cue.** The phone has none.
@@ -27,7 +31,7 @@ width changes the layout, never the app. Exactly one breakpoint (~48 rem):
 ## Week board (home)
 
 ```
-  KW 34   17.–23.8.      ‹  ›
+  ☰ KW 34            Bestand
   ───────────────────────────
   MONTAG   17          KURZ
      Gnocchi · Tomatensoße
@@ -41,7 +45,7 @@ width changes the layout, never the app. Exactly one breakpoint (~48 rem):
   SONNTAG  23   HEUTE    🌱
      Käsefondue
   ───────────────────────────
-     [ heute ]   [ Bestand ]
+  ‹          today          ›
 ```
 
 **Seven rows fit on a phone without scrolling.** Whoever scrolls has a list,
@@ -59,19 +63,15 @@ not a board, and the reason this view exists is gone. Everything follows:
 ## Day focus (editing)
 
 ```
-  ‹   MITTWOCH 19
-      KURZ
+  ‹ ☰ MITTWOCH 19                KURZ
   ───────────────────────────────────
-      Nudeln                        ✕
-      Tomatensoße                   ✕
+  Nudeln                            ✕
+  Tomatensoße                       ✕
   ───────────────────────────────────
-  VORSCHLÄGE
-      Reis           noch nie geplant
-      Salat        zuletzt mit Nudeln
-      Lasagne   zu aufwendig für kurz
-  ───────────────────────────────────
-   ⌕ suchen oder neu …
-               fertig
+   ⌕ suchen oder neu …         fertig
+  Reis               noch nie geplant
+  Salat            zuletzt mit Nudeln
+  Lasagne       zu aufwendig für kurz
 ```
 
 - **One day fills the screen** — targets stay large, eight suggestions fit
@@ -88,7 +88,8 @@ not a board, and the reason this view exists is gone. Everything follows:
   no re-roll, no confirming and nothing to undo.
 - **One tap adds, one tap removes**, written immediately, no confirming.
 - **The search field sits at the bottom** and is at the same time the field for
-  creating — what isn't found gets entered.
+  creating — what isn't found gets entered, and the field itself offers
+  `anlegen`, so the keyboard never covers the way to create.
 - **`fertig` returns to the board**, not to the next day. Planning together
   doesn't move in sequence.
 - Swiping to the neighbouring day may exist, never as the only way.
@@ -96,8 +97,7 @@ not a board, and the reason this view exists is gone. Everything follows:
 ## Bestand (curation)
 
 Not a planning screen: this is where the item list is built and kept honest —
-create, rename, merge, split, delete, set roles. Merging is the important one;
-it folds the many spellings of an item together without losing an evening.
+create, rename, delete, pause, set roles and levels.
 
 - **It starts empty and is filled by hand.** Nothing outside the app seeds it,
   so creating an item has to be as cheap as planning with one.
@@ -108,9 +108,16 @@ it folds the many spellings of an item together without losing an evening.
   keeps its shape, so nothing moves under the thumb and no control ends up
   behind the bar; the open row stays marked, and the name in the field says
   which item is meant.
-- **Filters and search stay in reach** while the list scrolls — they are how a
-  long inventory becomes finishable in sittings, and the editor takes their
-  place only while a row is open.
+- **A row says what the item costs, not what the evening feels like.** The
+  level is one scale; the evening is `kurz` / `normal` / `entspannt`, the item
+  that needs one is `schnell` / `mittel` / `aufwendig`.
+- **Search sits under the header, the filter is one button beside the name.**
+  Both stay put while the list scrolls — they are how a long inventory becomes
+  finishable in sittings. The filter cycles through `alle`, `vegetarisch`,
+  `ohne Rolle`, `ungenutzt` the way the editor's chips cycle, and it turns
+  brass while it is hiding rows.
+- **The bar belongs to the editor alone.** It exists while a row is open and
+  is not there otherwise.
 - It may scroll. It is a list and admits to being one.
 
 ## Colour
@@ -168,15 +175,23 @@ Colour is scarce, so symbols carry every state that isn't "today" or "careful".
 | `⚠` | blows the effort level — a hint, not a veto |
 | `🌱` | the two vegetarians can build a plate from this evening |
 | `–` | empty, and that's fine |
+| `●` | this week — between `‹` and `›`, and where they lead back to |
 
 `🌱` is a symbol and not a colour: brass already means three things.
+
+The three week controls are the one place a glyph stands without a word: they
+are one group, they are the only navigation on that line, and three labels
+would take the room the week itself needs. Everywhere else the word stays.
 
 ## Touch
 
 - **Targets at least 48 × 48 px, 8 px apart.** The day row is large enough at
   ~64 px; the hairline is only drawn, the hit area reaches to the next one.
-- **Frequent things belong at the bottom.** Hit accuracy is ~96% in the thumb
-  zone against ~61% in the stretch zone — hence `fertig`, search and footer bar.
+- **Frequent things belong at the bottom where something is being edited.** Hit
+  accuracy is ~96% in the thumb zone against ~61% in the stretch zone — hence
+  the day focus keeps its search, `fertig` and the item editor down there. The
+  board and `Bestand` are read and navigated, not edited, and carry their
+  actions in the app bar instead.
 - **Gestures only as accelerators.** Each one has a visible twin; hidden
   interactions don't get found.
 - A press is acknowledged with the surface `#221f1b`, not with an animation.
@@ -196,5 +211,5 @@ Colour is scarce, so symbols carry every state that isn't "today" or "careful".
   the button. Its screen already exists — the week board.
 
 Role colours · a colour per weekday · cards with borders and rounding · icons
-without text · animation · numbers in the suggestion · webfonts · a second
+where a word fits · animation · numbers in the suggestion · webfonts · a second
 accent beside the brass.

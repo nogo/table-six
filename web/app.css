@@ -45,7 +45,8 @@ button, input {
 button { cursor: pointer; text-align: left; }
 :focus-visible { outline: 2px solid var(--brass); outline-offset: -2px; }
 
-/* The screens keep the phone's column at every width; only Bestand takes more. */
+/* The phone's column is the base; above the breakpoint every screen takes the
+   room the window has. */
 .column {
   width: 100%;
   max-width: var(--column);
@@ -62,16 +63,46 @@ button { cursor: pointer; text-align: left; }
 
 /* ── screen frame ───────────────────────────────────────────────────────── */
 
-.head {
+.head { padding-top: env(safe-area-inset-top); }
+.head-line {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 8px;
   min-height: 56px;
-  padding-top: env(safe-area-inset-top);
 }
-.head h1 { font-size: 15px; margin: 0; flex: 1; }
+/* The title takes what is left and gives it back first: on a narrow phone the
+   controls keep their 48 px before the label keeps its words. */
+.head h1 { font-size: 15px; margin: 0; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The three week controls are one group and take the whole line: an arrow at
+   each edge, `●` in the middle, so the line itself reads as the run of weeks. */
+.weeks { justify-content: space-between; }
+.weeks .step { flex: 0 0 auto; }
+.logo { width: 26px; height: 26px; flex: 0 0 auto; }
+
+/* The screen's own actions live in the header, beside the name: `heute`,
+   `Bestand`, the filter. Compact, never stretched — the label is the target. */
+.action {
+  min-height: 48px;
+  padding: 0 6px;
+  display: inline-flex;
+  align-items: center;
+  color: var(--soft);
+  text-decoration: none;
+  font-size: 15px;
+  letter-spacing: .04em;
+}
+.action:active { background: var(--surface); color: var(--bone); }
+/* A filter that is not `alle` hides rows, so it says so in the accent. */
+.action.on { color: var(--brass); }
+
+/* The field takes the line it is on, in the header of `Bestand` and in the bar
+   of the day focus alike; the action beside it keeps its label's width. */
+.search-form .search { flex: 1; }
 
 main { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+/* The suggestions and an unedited `Bestand` have no bar under the list, so the
+   last row keeps clear of the home indicator itself. */
+main.column { padding-bottom: env(safe-area-inset-bottom); }
 
 .bar {
   position: sticky;
@@ -81,7 +112,6 @@ main { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
   padding-bottom: env(safe-area-inset-bottom);
 }
 .bar .column { display: flex; gap: 8px; }
-.bar .foot { display: block; padding-top: 8px; }
 .bar button, .bar a {
   flex: 1;
   min-height: 48px;
@@ -98,6 +128,7 @@ main { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 /* ── week board ─────────────────────────────────────────────────────────── */
 
 .step {
+  flex: 0 0 auto;
   width: 48px;
   height: 48px;
   display: grid;
@@ -106,6 +137,8 @@ main { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
   color: var(--soft);
 }
 .step:active { background: var(--surface); color: var(--bone); }
+/* Now, between the two arrows. Brass because that is what today is. */
+.step.now { color: var(--brass); font-size: 13px; }
 
 .day {
   display: block;
@@ -141,27 +174,30 @@ main { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 
 /* ── day focus ──────────────────────────────────────────────────────────── */
 
-.focus-head { padding: calc(env(safe-area-inset-top) + 8px) 0 12px; }
-.focus-line { display: flex; align-items: center; gap: 8px; min-height: 56px; }
-.focus-line .step { margin-left: -14px; }
-.focus-line .name, .focus-line .date { line-height: 1; }
-.focus-head .name { font-size: 24px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
-.focus-head .date { font-size: 24px; color: var(--soft); font-variant-numeric: tabular-nums; }
+/* One day fills the screen, so its name is the anchor and takes the 24 px of
+   the scale. The app bar around it is the board's, unchanged. */
+.head .day-title { margin: 0; flex: 0 1 auto; font-size: 24px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
+.head-line .grow { flex: 1; }
 
-/* The effort level of a weekday, tapped to cycle — it moves every Wednesday,
-   not just this one. A chip, so it reads as the control it is. */
+/* The level of this weekday, beside the date because that is what it is — an
+   attribute of the evening, tapped to cycle. The right of the app bar is
+   navigation on every screen, and this is not navigation. */
 .level {
-  min-height: 40px;
-  padding: 0 12px;
-  margin-left: 36px;
+  flex: 0 0 auto;
+  min-height: 48px;
+  padding: 0 8px;
   display: inline-flex;
   align-items: center;
-  background: var(--surface);
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--soft);
 }
-.level:active { color: var(--bone); }
+.level:active { background: var(--surface); color: var(--bone); }
 
 .hint.warn { color: var(--brass); }
-.hint.warn, .focus-head .hint { padding: 8px 0 0; }
+.head .hint { padding: 8px 0 0; }
 
 .row {
   display: flex;
@@ -186,18 +222,10 @@ main { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .row .mark { font-size: 13px; padding-right: 8px; }
 .row .reason { font-size: 13px; color: var(--soft); padding-right: 12px; }
 
-.section {
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: .1em;
-  text-transform: uppercase;
-  color: var(--soft);
-  margin: 16px 0 2px;
-}
-
 .hint { color: var(--soft); font-size: 15px; padding: 12px 0; }
 
-/* Search sits at the bottom: it is the field for creating, too. */
+/* The field is the field for creating, too — in `Bestand`'s header and on the
+   day's seam alike. */
 .search {
   display: flex;
   align-items: center;
@@ -209,33 +237,57 @@ main { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .search input { flex: 1; min-height: 48px; background: none; }
 .search input::placeholder { color: var(--soft); }
 
-.done {
-  width: 100%;
+/* The action the field itself offers: `anlegen` while something unknown is
+   typed, `fertig` while a row is being renamed. It stays beside the field, so
+   the keyboard never hides it the way a row in the list would. */
+.search .new, .editor .close {
+  flex: 0 0 auto;
   min-height: 48px;
-  text-align: center;
+  padding: 0 12px;
   color: var(--brass);
-  letter-spacing: .06em;
+  white-space: nowrap;
 }
-.done:active { background: var(--surface); }
 
-/* ── inventory (Bestand) ────────────────────────────────────────────────────────────── */
-
-.filters { display: flex; gap: 8px; padding: 4px 0 8px; }
-.filters button {
-  min-height: 48px;
-  padding: 0 10px;
+/* The seam: above it what is on the plate, below it what could be. The label
+   names the list, the field filters it and creates what is not in it, and
+   `fertig` beside it is the one way back — a word, not an arrow in a corner. */
+.section {
+  margin: 0 auto; /* the paragraph's own margin goes, `.column`'s centring stays */
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
   font-size: 12px;
   font-weight: 500;
   letter-spacing: .1em;
   text-transform: uppercase;
   color: var(--soft);
 }
-.filters button[aria-pressed="true"] { color: var(--brass); }
+.search-line {
+  display: flex;
+  gap: 8px;
+  padding-top: 6px;
+  padding-bottom: 8px;
+}
+/* The `+` of the rows below, on the field: it adds the one hit the search has
+   left, or creates what the inventory does not have. Several hits are a choice
+   in the list, so it goes dark and waits. */
+.search-line .go {
+  flex: 0 0 auto;
+  width: 48px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 17px;
+  color: var(--brass);
+}
+.search-line .go:active { background: var(--surface); }
+.search-line .go:disabled { color: var(--line); cursor: default; }
+
+/* ── inventory (Bestand) ────────────────────────────────────────────────────────────── */
 
 /* Editing sits in the bar, not in the row: the list keeps its shape while a
    row is open, and the controls stay in the thumb zone. */
 .bar .editor { flex-direction: column; padding-top: 8px; padding-bottom: 8px; }
-.editor .close { flex: 0 0 auto; min-height: 48px; padding: 0 12px; color: var(--brass); }
 
 .item-controls { display: flex; flex-wrap: wrap; gap: 8px; }
 .item-controls button {
@@ -254,12 +306,11 @@ main { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
 .item .row { border-top: 0; }
 .item .row[aria-expanded="true"] { background: var(--surface); }
 .item { border-top: 1px solid var(--line); }
-.done-inline { color: var(--brass); padding: 0 8px; min-height: 40px; }
 
 .list { padding-bottom: 24px; }
 
-/* Bestand is the one view that takes the width: above the breakpoint the
-   editor lays out on one line instead of two. */
+/* Above the breakpoint the window is what the layout follows: the lists take
+   the width, and `Bestand`'s editor lays out on one line instead of two. */
 @media (min-width: 48rem) {
   .wide { max-width: 60rem; }
   /* The width buys one line instead of two — the same editor, not another one. */

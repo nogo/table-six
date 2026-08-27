@@ -69,21 +69,6 @@ test('planning an item that does not exist is a 404, not an empty evening', asyn
   expect((await send('PUT', '/api/plan/19.8.2026/1')).status).toBe(400);
 });
 
-test('merging keeps every evening the source was on', async () => {
-  const nudeln = await item('Nudeln');
-  const noodles = await item('nudln');
-  await send('PUT', `/api/plan/2026-08-17/${noodles.id}`);
-  await send('PUT', `/api/plan/2026-08-19/${nudeln.id}`);
-  await send('PUT', `/api/plan/2026-08-19/${noodles.id}`); // both on the same evening
-
-  expect((await send('POST', `/api/items/${noodles.id}/merge`, { into: nudeln.id })).status).toBe(200);
-
-  const week = await (await fetch(url('/api/week?start=2026-08-17'))).json();
-  expect(week.days[0].items.map((i: { name: string }) => i.name)).toEqual(['Nudeln']);
-  expect(week.days[2].items.map((i: { name: string }) => i.name)).toEqual(['Nudeln']); // not twice
-  expect(await (await fetch(url('/api/items'))).json()).toHaveLength(1);
-});
-
 test('an item nobody has cooked can be deleted for real', async () => {
   const typo = await item('Lasgane');
   expect((await send('DELETE', `/api/items/${typo.id}`)).status).toBe(204);

@@ -37,9 +37,6 @@ export const patchItem = (id, fields) => send('PATCH', `/api/items/${id}`, field
  *  @param {number} id */
 export const deleteItem = (id) => send('DELETE', `/api/items/${id}`);
 
-/** @param {number} id @param {number} into fold `id` into `into`, keeping every evening */
-export const mergeItem = (id, into) => send('POST', `/api/items/${id}/merge`, { into });
-
 /** @param {string} date @param {number} itemId */
 export const addToPlan = (date, itemId) => send('PUT', `/api/plan/${date}/${itemId}`);
 

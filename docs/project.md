@@ -55,8 +55,8 @@ On Sunday, within a few minutes, a weekly plan that
   grid — a level, not a minute budget; exact cooking time doesn't matter to the
   family, so a derived minute figure would be a bogus number.
 - **Local, no auth, no server, German content only.** No allergies (as of 08/2026).
-- **The inventory stands on its own.** Items are created, renamed and merged
-  by hand; nothing outside the app is needed to fill it or to keep it usable.
+- **The inventory stands on its own.** Items are created and renamed by hand;
+  nothing outside the app is needed to fill it or to keep it usable.
 - **Nothing the family has eaten is deleted, only paused.** An item that has
   been on an evening keeps every evening it was on; pausing takes it out of
   the suggestions and is undone with one tap. Deleting is for what nobody

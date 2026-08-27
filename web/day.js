@@ -2,7 +2,7 @@
 // immediately — nothing to confirm, nothing to save.
 import { AurilElement, html } from './auril/index.js';
 import { addToPlan, createItem, fillDay, removeFromPlan, setWeekdayEffort } from './api.js';
-import { loadItems, loadSuggestions, loadWeek, router, store } from './app.js';
+import { loadItems, loadSuggestions, loadWeek, store } from './app.js';
 import { EFFORT_ORDER, WEEKDAYS, dayOfMonth, weekday } from './dates.js';
 import { componentName } from './items.js';
 
@@ -32,6 +32,17 @@ const REASON = {
 /** @param {any} reason @returns {string} */
 const reasonText = (reason) => (reason && REASON[reason.axis]?.(reason)) || '';
 
+/**
+ * What `+` will do, in words — the button itself is a `+` like every row's,
+ * and the plain sentence is what the screen reader gets instead.
+ * @param {{ item?: any, name?: string } | null} action
+ */
+const addLabel = (action) => {
+  if (action?.item) return `${action.item.name} hinzufügen`;
+  if (action?.name) return `„${action.name}“ anlegen und hinzufügen`;
+  return 'hinzufügen';
+};
+
 class DayFocus extends AurilElement {
   /** Search text — local state: nobody else needs to know what is being typed. */
   #query = '';
@@ -40,8 +51,6 @@ class DayFocus extends AurilElement {
     this.watch((s) => s.week, () => this.update());
     this.watch((s) => s.items, () => this.update());
     this.watch((s) => s.suggestions, () => this.update());
-
-    this.delegate('click', '.back, .done', () => router.go('/'));
 
     this.delegate('click', '.add', (_, el) => this.#write(addToPlan(this.date, this.#id(el))));
     this.delegate('click', '.fill', () => this.#write(fillDay(this.date)));
@@ -58,12 +67,16 @@ class DayFocus extends AurilElement {
       this.update();
     });
 
-    // What isn't found gets entered: the search field is the create field.
+    // The field searches while it is typed; `+` is what it does with the
+    // result. Enter is the same action — the keyboard is the accelerator.
     this.delegate('submit', '.search-form', (event) => {
       event.preventDefault();
-      this.#create();
+      this.#run();
     });
-    this.delegate('click', '.new', () => this.#create());
+    this.delegate('click', '.go', () => this.#run());
+    // The field keeps the focus: a blur here would drop the keyboard, and the
+    // list under the field would jump before the click lands.
+    this.delegate('mousedown', '.go', (event) => event.preventDefault());
 
     loadWeek();
     loadItems();
@@ -89,15 +102,50 @@ class DayFocus extends AurilElement {
     await Promise.all([loadWeek(), loadItems(), loadSuggestions(this.date)]);
   }
 
-  async #create() {
+  /** The ranking for this date — nothing until the one for this date arrives. */
+  #ranked() {
+    return store.state.suggestions.date === this.date ? store.state.suggestions.list : [];
+  }
+
+  /**
+   * What the query leaves of the ranking: the list under the field, and what
+   * the field's `+` is offering.
+   * @param {any} day
+   */
+  #found(day) {
+    const query = this.#query.trim().toLowerCase();
+    const planned = new Set(day.items.map((/** @type {any} */ item) => item.id));
+    return this.#ranked()
+      .filter(({ item }) => !planned.has(item.id) && item.name.toLowerCase().includes(query));
+  }
+
+  /**
+   * The one thing `+` does, read off the search: with a single hit it adds it,
+   * with none it creates what was typed. Several hits are not the button's
+   * decision to make — the list is right there — and neither is a name the
+   * inventory already has under a different search.
+   * @param {any[]} found
+   * @returns {{ item?: any, name?: string } | null}
+   */
+  #action(found) {
     const name = this.#query.trim();
-    if (!name) return;
+    if (!name) return null;
+    if (found.length === 1) return { item: found[0].item };
+    const known = store.state.items.some((item) => item.name.toLowerCase() === name.toLowerCase());
+    return found.length === 0 && !known ? { name } : null;
+  }
+
+  /** Add the hit or create the name — either way the evening gets the item. */
+  async #run() {
+    const day = this.#day();
+    const action = day && this.#action(this.#found(day));
+    if (!action) return;
     const input = /** @type {HTMLInputElement | null} */ (this.querySelector('.query'));
     this.#query = '';
     if (input) input.value = ''; // morph leaves the focused field alone — clear it here
     // A new item takes the level of the evening it was created for: nobody
     // wants a warning about the thing they just typed.
-    const item = await createItem(name, { effort: this.#day()?.effort });
+    const item = action.item ?? await createItem(action.name, { effort: day.effort });
     await this.#write(addToPlan(this.date, item.id));
     input?.focus();
   }
@@ -116,56 +164,56 @@ class DayFocus extends AurilElement {
 
   render() {
     const day = this.#day();
-    if (!day) return html`<main class="column"></main>`;
+    if (!day) return html`<main class="column wide"></main>`;
 
-    const query = this.#query.trim().toLowerCase();
-    const planned = new Set(day.items.map((/** @type {any} */ item) => item.id));
-    // The list is ranked for one date; until the new one arrives, show none.
-    const ranked = store.state.suggestions.date === this.date ? store.state.suggestions.list : [];
+    const query = this.#query.trim();
+    const ranked = this.#ranked();
+    const found = this.#found(day);
+    const action = this.#action(found);
     // Nothing to propose on an evening that already has something on it —
     // clearing the day is how you ask again.
     const canFill = day.items.length === 0 && ranked.length > 0 && !query;
-    const suggestions = ranked
-      .filter(({ item }) => !planned.has(item.id) && item.name.toLowerCase().includes(query))
-      .slice(0, Math.max(3, ROWS - day.items.length - (canFill ? 1 : 0))); // a full plate gives room back
-    const known = store.state.items.some((item) => item.name.toLowerCase() === query);
+    // A full plate gives room back.
+    const suggestions = found.slice(0, Math.max(3, ROWS - day.items.length - (canFill ? 1 : 0)));
     const tooMuch = day.items.filter((/** @type {any} */ item) => EFFORT_ORDER.indexOf(item.effort) > EFFORT_ORDER.indexOf(day.effort));
 
     return html`
-      <header class="column focus-head">
-        <div class="focus-line">
-          <button class="step back" aria-label="Zurück zur Woche">‹</button>
-          <span class="name">${WEEKDAYS[day.weekday]}</span>
-          <span class="date num">${dayOfMonth(day.date)}</span>
+      <header class="head column wide">
+        <div class="head-line">
+          <img class="logo" src="/icon.svg" alt="" width="26" height="26">
+          <h1 class="day-title">${WEEKDAYS[day.weekday]} <span class="soft num">${dayOfMonth(day.date)}</span></h1>
+          <button class="level" type="button"
+                  aria-label="Aufwand für ${WEEKDAYS[day.weekday]}, gerade: ${day.effort}">${day.effort}</button>
+          <span class="grow"></span>
+          <a class="action" href="/">Woche</a>
         </div>
-        <button class="level effort">${day.effort}</button>
         ${tooMuch.length > 0 && html`
           <p class="hint warn">⚠︎ Aufwendiger als ein ${EVENING[day.effort]}: ${tooMuch.map((/** @type {any} */ i) => i.name).join(', ')}.</p>`}
         ${day.items.length > 0 && !day.vegetarian && html`
           <p class="hint">Nichts Vegetarisches dabei.</p>`}
       </header>
 
-      <main class="column">
+      <section class="column wide plate-list">
         ${day.items.map((/** @type {any} */ item) => this.#row(item, 'x'))}
-        <p class="section">Vorschläge</p>
+      </section>
+
+      <p class="column wide section">Vorschläge</p>
+      <form class="column wide search-line search-form">
+        <label class="search">
+          <span class="soft" aria-hidden="true">⌕</span>
+          <input class="query" value="${this.#query}" placeholder="suchen oder neu …"
+                 autocomplete="off" enterkeyhint="enter" aria-label="Zutat suchen oder anlegen">
+        </label>
+        <button class="go" type="submit" ${action ? '' : 'disabled'}
+                aria-label="${addLabel(action)}">+</button>
+      </form>
+
+      <main class="column wide">
         ${canFill && html`
           <button class="row fill"><span class="grow">Abend vorschlagen</span><span class="add-mark">+</span></button>`}
         ${suggestions.map(({ item, reason }) => this.#row(item, 'add', reasonText(reason)))}
-        ${query && !known && html`
-          <button class="row new"><span class="grow">„${this.#query.trim()}“ anlegen</span><span class="add-mark">+</span></button>`}
         ${ranked.length === 0 && !query && html`<p class="hint">Der Bestand ist noch leer.</p>`}
-      </main>
-
-      <div class="bar">
-        <form class="column foot search-form">
-          <label class="search">
-            <span class="soft" aria-hidden="true">⌕</span>
-            <input class="query" value="${this.#query}" placeholder="suchen oder neu …"
-                   autocomplete="off" enterkeyhint="done" aria-label="Zutat suchen oder anlegen">
-          </label>
-          <button class="done" type="button">fertig</button>
-        </form>
-      </div>`;
+      </main>`;
   }
 }
 customElements.define('day-focus', DayFocus);

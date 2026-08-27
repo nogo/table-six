@@ -19,3 +19,18 @@ const NAMES = {
 
 /** @param {string | null} component */
 export const componentName = (component) => (component && NAMES[component]) || 'ohne Rolle';
+
+/**
+ * The same level, said from the item's side. `kurz` / `normal` / `entspannt`
+ * describe the evening — an item does not have a mood, it has a cost, and in
+ * `Bestand` that is what the row is judged on.
+ * @type {Record<string, string>}
+ */
+const EFFORTS = {
+  kurz: 'schnell',
+  normal: 'mittel',
+  entspannt: 'aufwendig',
+};
+
+/** @param {string} effort */
+export const effortName = (effort) => EFFORTS[effort] ?? effort;

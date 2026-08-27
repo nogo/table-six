@@ -8,7 +8,6 @@ import {
   deleteItem,
   getItem,
   listItems,
-  mergeItems,
   removeFromPlan,
   setWeekdayEffort,
   updateItem,
@@ -131,19 +130,6 @@ export const routes = {
       deleteItem(id);
       publish('items');
       return done();
-    },
-  },
-
-  // Fold the many spellings of one item together without losing an evening.
-  '/api/items/:id/merge': {
-    POST: async (request: Request & { params: { id: string } }) => {
-      const source = asId(request.params.id);
-      const target = asId(String((await body(request)).into));
-      if (source === null || target === null || source === target) return bad('into must be another item');
-      if (!getItem(source) || !getItem(target)) return missing();
-      const merged = mergeItems(source, target) as Item;
-      publish('items');
-      return Response.json(merged);
     },
   },
 

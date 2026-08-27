@@ -38,25 +38,51 @@ class WeekBoard extends AurilElement {
       </button>`;
   }
 
+  /**
+   * The app bar, one line: the mark, which week is on screen, and the one
+   * other screen. Stepping through the weeks is not up here — it is the one
+   * thing this screen does over and over, so it sits in the thumb zone.
+   * @param {any} week
+   */
+  #head(week) {
+    return html`
+      <header class="head column wide">
+        <div class="head-line">
+          <img class="logo" src="/icon.svg" alt="Table Six" width="26" height="26">
+          ${week && html`
+            <h1 class="caps">KW ${week.week} <span class="soft num">${range(week.start, week.end)}</span></h1>`}
+          <a class="action" href="/inventory">Bestand</a>
+        </div>
+      </header>`;
+  }
+
+  /**
+   * The way through the weeks, at the bottom: the arrows at the two edges of
+   * the line, `●` in the middle. The dot is now — where the arrows lead back
+   * to, and the reason the three need no words between them.
+   */
+  #weeks() {
+    return html`
+      <nav class="bar">
+        <div class="column wide weeks">
+          <button class="step" data-step="-1" aria-label="Woche zurück">‹</button>
+          <button class="step now to-today" aria-label="Diese Woche">●</button>
+          <button class="step" data-step="1" aria-label="Woche vor">›</button>
+        </div>
+      </nav>`;
+  }
+
   render() {
     const { week, offline } = store.state;
     if (!week) {
-      return html`<main class="column">${offline && html`<p class="hint">Keine Verbindung. Sobald das Netz da ist, ist die Woche da.</p>`}</main>`;
+      return html`${this.#head(null)}
+        <main class="column wide">${offline && html`<p class="hint">Keine Verbindung. Sobald das Netz da ist, ist die Woche da.</p>`}</main>`;
     }
     return html`
-      <header class="head column">
-        <h1 class="caps">KW ${week.week} <span class="soft num">${range(week.start, week.end)}</span></h1>
-        <button class="step" data-step="-1" aria-label="Woche zurück">‹</button>
-        <button class="step" data-step="1" aria-label="Woche vor">›</button>
-      </header>
-      ${offline && html`<p class="column hint">offline — die Woche kann veraltet sein</p>`}
-      <main class="column">${week.days.map((day) => this.#row(day))}</main>
-      <nav class="bar">
-        <div class="column">
-          <button class="to-today">heute</button>
-          <a href="/inventory">Bestand</a>
-        </div>
-      </nav>`;
+      ${this.#head(week)}
+      ${offline && html`<p class="column wide hint">offline — die Woche kann veraltet sein</p>`}
+      <main class="column wide">${week.days.map((day) => this.#row(day))}</main>
+      ${this.#weeks()}`;
   }
 }
 customElements.define('week-board', WeekBoard);
