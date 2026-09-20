@@ -2,6 +2,7 @@
 // The whole row is the button — it leads to the day focus.
 import { AurilElement, html } from './auril/index.js';
 import { loadWeek, router, store } from './app.js';
+import { t } from './i18n.js';
 import { WEEKDAYS, addDays, dayOfMonth, range, today, weekStart } from './dates.js';
 
 class WeekBoard extends AurilElement {
@@ -28,7 +29,9 @@ class WeekBoard extends AurilElement {
           <span class="name">${WEEKDAYS[day.weekday]}</span>
           <span class="date num">${dayOfMonth(day.date)}</span>
           <span class="grow"></span>
-          ${isToday ? html`<span class="effort today-mark">heute</span>` : html`<span class="effort">${day.effort}</span>`}
+          ${isToday
+            ? html`<span class="effort today-mark">${t('board.today')}</span>`
+            : html`<span class="effort">${t(`level.${day.effort}`)}</span>`}
           ${day.overEffort && html`<span class="mark warn">⚠︎</span>`}
         </span>
         <span class="plate ${day.items.length ? '' : 'empty'}">
@@ -49,8 +52,9 @@ class WeekBoard extends AurilElement {
         <div class="head-line">
           <img class="logo" src="/icon.svg" alt="Table Six" width="26" height="26">
           ${week && html`
-            <h1 class="caps">KW ${week.week} <span class="soft num">${range(week.start, week.end)}</span></h1>`}
-          <a class="action" href="/inventory">Bestand</a>
+            <h1 class="caps">${t('board.week', { week: week.week })}
+              <span class="soft num">${range(week.start, week.end)}</span></h1>`}
+          <a class="action" href="/inventory">${t('nav.inventory')}</a>
         </div>
       </header>`;
   }
@@ -64,9 +68,9 @@ class WeekBoard extends AurilElement {
     return html`
       <nav class="bar">
         <div class="column wide weeks">
-          <button class="step" data-step="-1" aria-label="Woche zurück">‹</button>
-          <button class="step now to-today" aria-label="Diese Woche">●</button>
-          <button class="step" data-step="1" aria-label="Woche vor">›</button>
+          <button class="step" data-step="-1" aria-label="${t('nav.prevWeek')}">‹</button>
+          <button class="step now to-today" aria-label="${t('nav.thisWeek')}">●</button>
+          <button class="step" data-step="1" aria-label="${t('nav.nextWeek')}">›</button>
         </div>
       </nav>`;
   }
@@ -75,11 +79,11 @@ class WeekBoard extends AurilElement {
     const { week, offline } = store.state;
     if (!week) {
       return html`${this.#head(null)}
-        <main class="column wide">${offline && html`<p class="hint">Keine Verbindung. Sobald das Netz da ist, ist die Woche da.</p>`}</main>`;
+        <main class="column wide">${offline && html`<p class="hint">${t('board.unreachable')}</p>`}</main>`;
     }
     return html`
       ${this.#head(week)}
-      ${offline && html`<p class="column wide hint">offline — die Woche kann veraltet sein</p>`}
+      ${offline && html`<p class="column wide hint">${t('board.offline')}</p>`}
       <main class="column wide">${week.days.map((day) => this.#row(day))}</main>
       ${this.#weeks()}`;
   }

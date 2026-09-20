@@ -18,6 +18,9 @@ VOLUME /data
 # container is UTC unless told otherwise. Override it for another kitchen.
 ENV TZ=Europe/Berlin
 
+# The language the interface is served in: `de` or `en`, one per deployment.
+ENV TABLE_SIX_LANG=de
+
 USER bun
 EXPOSE 4173
 CMD ["bun", "src/server.ts"]

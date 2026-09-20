@@ -5,15 +5,13 @@ import { AurilElement, html } from './auril/index.js';
 import { createItem, deleteItem, patchItem } from './api.js';
 import { loadItems, loadWeek, store } from './app.js';
 import { EFFORT_ORDER } from './dates.js';
+import { t } from './i18n.js';
 import { COMPONENT_ORDER, componentName, effortName } from './items.js';
 
 /** @typedef {{ id: number, name: string }} Intent an item a pending action refers to */
 
-const FILTERS = [
-  ['all', 'alle'],
-  ['unsorted', 'ohne Rolle'],
-  ['unused', 'ungenutzt'],
-];
+/** The key is what the code filters by, the word is what the button shows. */
+const FILTERS = ['all', 'unsorted', 'unused'];
 
 /** What each filter keeps. `ohne Rolle` is how the curation gets finished. */
 const MATCHES = {
@@ -109,8 +107,8 @@ class ItemInventory extends AurilElement {
       this.update();
     });
     this.delegate('click', '.filter', () => {
-      const at = FILTERS.findIndex(([key]) => key === this.#filter);
-      this.#filter = FILTERS[(at + 1) % FILTERS.length][0];
+      const at = FILTERS.indexOf(this.#filter);
+      this.#filter = FILTERS[(at + 1) % FILTERS.length];
       this.update();
     });
     this.delegate('submit', '.search-form', (event) => {
@@ -176,7 +174,7 @@ class ItemInventory extends AurilElement {
    * @param {any} item
    */
   #note(item) {
-    if (item.retired) return 'pausiert';
+    if (item.retired) return t('inventory.paused');
     return item.component ? componentName(item.component) : '';
   }
 
@@ -200,10 +198,11 @@ class ItemInventory extends AurilElement {
    * @param {any} item
    */
   #retireOrDelete(item) {
-    if (item.retired) return html`<button class="resume">wieder aufnehmen</button>`;
-    if (item.last_used) return html`<button class="retire">pausieren</button>`;
+    if (item.retired) return html`<button class="resume">${t('inventory.resume')}</button>`;
+    if (item.last_used) return html`<button class="retire">${t('inventory.pause')}</button>`;
     return html`
-      <button class="danger delete">${this.#confirming?.id === item.id ? 'wirklich löschen?' : 'löschen'}</button>`;
+      <button class="danger delete">${
+        this.#confirming?.id === item.id ? t('inventory.confirmDelete') : t('inventory.delete')}</button>`;
   }
 
   /**
@@ -217,8 +216,9 @@ class ItemInventory extends AurilElement {
     return html`
       <div class="column wide editor" data-id="${item.id}">
         <label class="search">
-          <input class="rename" value="${item.name}" aria-label="Name" autocomplete="off" enterkeyhint="done">
-          <button class="close" type="button">fertig</button>
+          <input class="rename" value="${item.name}" aria-label="${t('inventory.name')}"
+                 autocomplete="off" enterkeyhint="done">
+          <button class="close" type="button">${t('inventory.done')}</button>
         </label>
         <div class="item-controls">
           <button class="cycle">${effortName(item.effort)}</button>
@@ -237,24 +237,24 @@ class ItemInventory extends AurilElement {
     // The row being edited need not be one the filter keeps: the bar shows it
     // either way, and that is where it is edited.
     const editing = this.#editing === null ? null : this.#item(this.#editing);
-    const filter = FILTERS.find(([key]) => key === this.#filter) ?? FILTERS[0];
+    const filter = t(`inventory.filter.${this.#filter}`);
 
     return html`
       <header class="head column wide">
         <div class="head-line">
           <img class="logo" src="/icon.svg" alt="" width="26" height="26">
-          <h1 class="caps">Bestand <span class="soft num">${store.state.items.length}</span></h1>
-          <a class="action" href="/">Woche</a>
+          <h1 class="caps">${t('inventory.title')} <span class="soft num">${store.state.items.length}</span></h1>
+          <a class="action" href="/">${t('nav.week')}</a>
         </div>
         <form class="head-line search-form">
           <label class="search">
             <span class="soft" aria-hidden="true">⌕</span>
-            <input class="query" value="${this.#query}" placeholder="suchen oder neu …"
-                   autocomplete="off" enterkeyhint="done" aria-label="Item suchen oder anlegen">
-            ${query && !known && html`<button class="new" type="button">anlegen</button>`}
+            <input class="query" value="${this.#query}" placeholder="${t('inventory.search')}"
+                   autocomplete="off" enterkeyhint="done" aria-label="${t('inventory.searchLabel')}">
+            ${query && !known && html`<button class="new" type="button">${t('inventory.create')}</button>`}
           </label>
           <button class="action filter ${this.#filter === 'all' ? '' : 'on'}" type="button"
-                  aria-label="Filter, zeigt gerade: ${filter[1]}">${filter[1]}</button>
+                  aria-label="${t('inventory.filter', { filter })}">${filter}</button>
         </form>
       </header>
 
@@ -262,8 +262,8 @@ class ItemInventory extends AurilElement {
         ${items.map((item) => this.#row(item))}
         ${items.length === 0 && html`
           <p class="hint">${query || this.#filter !== 'all'
-            ? 'Nichts gefunden.'
-            : 'Noch nichts drin. Was esst ihr? Oben eintippen.'}</p>`}
+            ? t('inventory.nothingFound')
+            : t('inventory.empty')}</p>`}
       </main>
 
       ${editing && html`<div class="bar">${this.#editor(editing)}</div>`}`;

@@ -4,11 +4,10 @@ import { AurilElement, html } from './auril/index.js';
 import { addToPlan, createItem, fillDay, removeFromPlan, setWeekdayEffort } from './api.js';
 import { loadItems, loadSuggestions, loadWeek, store } from './app.js';
 import { EFFORT_ORDER, WEEKDAYS, dayOfMonth, weekday } from './dates.js';
+import { t } from './i18n.js';
 import { componentName } from './items.js';
 
 const ROWS = 8; // plate and suggestions together — as many as fit without scrolling
-
-const EVENING = { kurz: 'kurzer Abend', normal: 'normaler Abend', entspannt: 'entspannter Abend' };
 
 /**
  * The server ranks and names the axis that spoke; the German is the view's
@@ -16,19 +15,19 @@ const EVENING = { kurz: 'kurzer Abend', normal: 'normaler Abend', entspannt: 'en
  * is this thin a score would be a bogus one.
  */
 /** @param {number} days */
-const ago = (days) => `vor ${days} ${days === 1 ? 'Tag' : 'Tagen'}`;
+const ago = (days) => (days === 1 ? t('reason.agoOne') : t('reason.ago', { days }));
 
 /** @type {Record<string, (reason: any) => string>} */
 const REASON = {
-  retired: () => 'pausiert',
-  effort: (reason) => `zu aufwendig für ${reason.effort}`,
-  alone: () => 'reicht allein',
-  doubled: (reason) => `schon ${componentName(reason.component)} dabei`,
-  pair: (reason) => `zuletzt mit ${reason.partner}`,
-  gap: (reason) => `${componentName(reason.component)} fehlt noch`,
-  fresh: () => 'noch nie geplant',
-  due: (reason) => `wieder dran · ${ago(reason.days)}`,
-  recency: (reason) => (reason.days > 0 ? ago(reason.days) : 'schon eingeplant'),
+  retired: () => t('reason.retired'),
+  effort: (reason) => t('reason.effort', { effort: t(`level.${reason.effort}`) }),
+  alone: () => t('reason.alone'),
+  doubled: (reason) => t('reason.doubled', { component: componentName(reason.component) }),
+  pair: (reason) => t('reason.pair', { partner: reason.partner }),
+  gap: (reason) => t('reason.gap', { component: componentName(reason.component) }),
+  fresh: () => t('reason.fresh'),
+  due: (reason) => t('reason.due', { ago: ago(reason.days) }),
+  recency: (reason) => (reason.days > 0 ? ago(reason.days) : t('reason.planned')),
 };
 
 /** @param {any} reason @returns {string} */
@@ -40,9 +39,9 @@ const reasonText = (reason) => (reason && REASON[reason.axis]?.(reason)) || '';
  * @param {{ item?: any, name?: string } | null} action
  */
 const addLabel = (action) => {
-  if (action?.item) return `${action.item.name} hinzufügen`;
-  if (action?.name) return `„${action.name}“ anlegen und hinzufügen`;
-  return 'hinzufügen';
+  if (action?.item) return t('day.addItem', { name: action.item.name });
+  if (action?.name) return t('day.createAndAdd', { name: action.name });
+  return t('day.add');
 };
 
 class DayFocus extends AurilElement {
@@ -184,24 +183,28 @@ class DayFocus extends AurilElement {
           <img class="logo" src="/icon.svg" alt="" width="26" height="26">
           <h1 class="day-title">${WEEKDAYS[day.weekday]} <span class="soft num">${dayOfMonth(day.date)}</span></h1>
           <button class="level" type="button"
-                  aria-label="Aufwand für ${WEEKDAYS[day.weekday]}, gerade: ${day.effort}">${day.effort}</button>
+                  aria-label="${t('day.level', { weekday: WEEKDAYS[day.weekday], effort: t(`level.${day.effort}`) })}"
+                  >${t(`level.${day.effort}`)}</button>
           <span class="grow"></span>
-          <a class="action" href="/">Woche</a>
+          <a class="action" href="/">${t('nav.week')}</a>
         </div>
         ${tooMuch.length > 0 && html`
-          <p class="hint warn">⚠︎ Aufwendiger als ein ${EVENING[day.effort]}: ${tooMuch.map((/** @type {any} */ i) => i.name).join(', ')}.</p>`}
+          <p class="hint warn">${t('day.tooMuch', {
+            evening: t(`evening.${day.effort}`),
+            items: tooMuch.map((/** @type {any} */ i) => i.name).join(', '),
+          })}</p>`}
       </header>
 
       <section class="column wide plate-list">
         ${day.items.map((/** @type {any} */ item) => this.#row(item, 'x'))}
       </section>
 
-      <p class="column wide section">Vorschläge</p>
+      <p class="column wide section">${t('day.suggestions')}</p>
       <form class="column wide search-line search-form">
         <label class="search">
           <span class="soft" aria-hidden="true">⌕</span>
-          <input class="query" value="${this.#query}" placeholder="suchen oder neu …"
-                 autocomplete="off" enterkeyhint="enter" aria-label="Zutat suchen oder anlegen">
+          <input class="query" value="${this.#query}" placeholder="${t('day.search')}"
+                 autocomplete="off" enterkeyhint="enter" aria-label="${t('day.searchLabel')}">
         </label>
         <button class="go" type="submit" ${action ? '' : 'disabled'}
                 aria-label="${addLabel(action)}">+</button>
@@ -209,9 +212,9 @@ class DayFocus extends AurilElement {
 
       <main class="column wide">
         ${canFill && html`
-          <button class="row fill"><span class="grow">Abend vorschlagen</span><span class="add-mark">+</span></button>`}
+          <button class="row fill"><span class="grow">${t('day.propose')}</span><span class="add-mark">+</span></button>`}
         ${suggestions.map(({ item, reason }) => this.#row(item, 'add', reasonText(reason)))}
-        ${ranked.length === 0 && !query && html`<p class="hint">Der Bestand ist noch leer.</p>`}
+        ${ranked.length === 0 && !query && html`<p class="hint">${t('day.empty')}</p>`}
       </main>`;
   }
 }

@@ -12,6 +12,7 @@ const SHELL = [
   '/day.js',
   '/inventory.js',
   '/dates.js',
+  '/i18n.js',
   '/items.js',
   '/sync.js',
   '/auril/index.js',

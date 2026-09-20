@@ -45,7 +45,10 @@ whether the runtime already has it — Bun ships more every release.
   re-vendored.
 - **PWA:** manifest and a shell-only service worker, `display: standalone`, so
   the app opens from the home screen. The cache holds the shell, never data.
-- **German** in the interface, English in code, comments and docs.
+- **The interface speaks German or English**, one per deployment
+  (`TABLE_SIX_LANG`, German by default). Every word it says lives in
+  `web/i18n.js` and is reached through `t()` — never a literal in a screen.
+  Code, comments and docs stay English, and item names stay as typed.
 
 ## Sync
 

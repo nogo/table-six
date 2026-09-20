@@ -7,8 +7,23 @@ const WEB = new URL('../web/', import.meta.url).pathname;
 const PORT = Number(process.env.PORT ?? 4173);
 const TOPIC = 'table-six';
 
+/**
+ * One deployment speaks one language. It is set here, on the shell, and the
+ * interface reads it back off `<html lang>` — there is no switch in the app,
+ * because a kitchen does not change language between two evenings.
+ */
+const LANGUAGE = process.env.TABLE_SIX_LANG === 'en' ? 'en' : 'de';
+
+// Read once: the shell is one file that only changes when the app is deployed,
+// and the ETag over it keeps a reload in the kitchen at 304 and no bytes.
+const SHELL = (await file(WEB + 'index.html').text()).replace(/<html lang="[a-z-]+">/, `<html lang="${LANGUAGE}">`);
+const ETAG = `"${Bun.hash(SHELL).toString(16)}"`;
+
 /** The screens the client router owns: each one is the shell, it takes over from there. */
-const shell = () => new Response(file(WEB + 'index.html'));
+const shell = (request: Request) =>
+  request.headers.get('if-none-match') === ETAG
+    ? new Response(null, { status: 304, headers: { etag: ETAG } })
+    : new Response(SHELL, { headers: { etag: ETAG, 'content-type': 'text/html; charset=utf-8' } });
 
 const server = Bun.serve({
   port: PORT,
@@ -17,6 +32,7 @@ const server = Bun.serve({
   routes: {
     ...routes,
 
+    '/': shell,
     '/day/:date': shell,
     '/inventory': shell,
 

@@ -50,7 +50,11 @@ On Sunday, within a few minutes, a weekly plan that
 - **Effort level per weekday** (`kurz` / `normal` / `entspannt`) as a recurring
   grid — a level, not a minute budget; exact cooking time doesn't matter to the
   family, so a derived minute figure would be a bogus number.
-- **Local, no auth, no server, German content only.** No allergies (as of 08/2026).
+- **Local, no auth, no server.** No allergies (as of 08/2026).
+- **One deployment, one language.** The interface is German or English,
+  decided by `TABLE_SIX_LANG` where the app is started; there is no switch in
+  the app, because a kitchen does not change language between two evenings.
+  Item names are data — they stay in whatever language they were typed.
 - **The inventory stands on its own.** Items are created and renamed by hand;
   nothing outside the app is needed to fill it or to keep it usable.
 - **Nothing the family has eaten is deleted, only paused.** An item that has

@@ -5,7 +5,7 @@ dish** — potatoes, broccoli and bratwurst is one meal for everyone at the
 table, and whoever does not want an item leaves it out. **The app suggests, it
 never decides:** every slot is overwritable, every warning is a hint.
 
-Three screens, German throughout:
+Three screens, in German or English — one language per deployment:
 
 - **Woche** — seven evenings on one phone screen, no scrolling. Plate, effort
   level, and a `⚠` when an evening asks for more time than the weekday has.
@@ -29,9 +29,10 @@ front. One language, one database, one process, **no build step and no runtime
 dependencies** — `@types/bun` is the only entry in `package.json`.
 
 ```sh
-bun src/server.ts          # http://localhost:4173
-bun --watch src/server.ts  # while editing
-bun test                   # the whole suite, well under a second
+bun src/server.ts                        # http://localhost:4173
+TABLE_SIX_LANG=en bun src/server.ts      # English instead of German
+bun --watch src/server.ts                # while editing
+bun test                                 # the whole suite, well under a second
 ```
 
 The database lives in `data/` and is not in git. In the container it is a bind

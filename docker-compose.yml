@@ -12,6 +12,8 @@ services:
     # this the week rolls over two hours early.
     environment:
       TZ: Europe/Berlin
+      # `de` or `en` — the interface is served in one language, no switch.
+      TABLE_SIX_LANG: de
     # 9000 on the Pi, 4173 inside — the container keeps the port the app uses
     # in development, the Pi decides what the kitchen dials.
     ports:
