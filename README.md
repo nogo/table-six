@@ -5,22 +5,41 @@ dish** — potatoes, broccoli and bratwurst is one meal for everyone at the
 table, and whoever does not want an item leaves it out. **The app suggests, it
 never decides:** every slot is overwritable, every warning is a hint.
 
-Three screens, in German or English — one language per deployment:
+The screens side by side: <https://nogo.github.io/table-six/>
 
-- **Woche** — seven evenings on one phone screen, no scrolling. Plate, effort
+<p>
+  <img src="site/screens/board-en.png" width="32%" alt="The week: seven evenings with their plates and effort levels.">
+  <img src="site/screens/day-en.png" width="32%" alt="One evening with its suggestions, each carrying a reason.">
+  <img src="site/screens/items-en.png" width="32%" alt="The item list with the part each item plays on a plate.">
+</p>
+
+Three screens, in English or German — one language per deployment:
+
+- **Week** — seven evenings on one phone screen, no scrolling. Plate, effort
   level, and a `⚠` when an evening asks for more time than the weekday has.
-- **Tag** — one evening fills the screen. One tap adds an item, one tap removes
+- **Day** — one evening fills the screen. One tap adds an item, one tap removes
   it, written immediately. Every suggestion carries its reason in plain words
-  („wieder dran · vor 11 Tagen", „zuletzt mit Gnocchi"), and `Abend
-  vorschlagen` proposes a whole evening out of combinations that have actually
-  been eaten.
-- **Bestand** — the item list: create, rename, set the part it plays on a plate
-  (`Sättigung`, `Gemüse`, `Protein`, `Extra`, `Komplett`) and how much work it
-  is. Nothing seeds it; it is filled by hand and that is cheap on purpose.
+  ("due again · 11 days ago", "last with Gnocchi"), and *Propose an evening*
+  builds a whole evening out of combinations that have actually been eaten.
+- **Items** — the list itself: create, rename, set the part an item plays on a
+  plate (filling, vegetable, protein, extra, or whole) and how much work it is.
+  Nothing seeds it; it is filled by hand and that is cheap on purpose.
 
 Every device planning at the same time sees the same week without a reload:
 SQLite is the truth, a websocket only says what changed, and everything still
 works when it never connects.
+
+## How it suggests
+
+- **Rhythm, not recency.** Every item keeps its own cadence, read off its own
+  history — bread after three days and a roast after a month are both due.
+- **Only combinations that were eaten.** A proposed evening grows through
+  plates that have actually happened, never by assembling parts that have never
+  met on one table.
+- **Time is first class.** Each weekday carries an effort level, and an evening
+  that asks for more says so — as a hint, never a veto.
+- **Nothing is hidden.** The worst item in the list still shows up; it just
+  shows up last.
 
 ## Running it
 
@@ -35,11 +54,14 @@ bun --watch src/server.ts                # while editing
 bun test                                 # the whole suite, well under a second
 ```
 
-The database lives in `data/` and is not in git. In the container it is a bind
-mount and the image comes from the registry:
+`TABLE_SIX_LANG` is `de` or `en` and defaults to `de`. There is no language
+switch in the interface: one deployment speaks one language.
+
+The database lives in `data/` and is not in git. In a container it is a bind
+mount, and the image is built by CI and pulled from the registry:
 
 ```sh
-docker compose pull && docker compose up -d
+docker compose pull && docker compose up -d   # ghcr.io/nogo/table-six:latest
 ```
 
 ## Guardrails
