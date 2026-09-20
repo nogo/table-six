@@ -25,14 +25,13 @@ jobs:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}
     steps:
-      - uses: actions/checkout@v4
-      # `enablement` turns Pages on if it is off: the workflow is then the whole
-      # setup, and a fresh clone of this repo does not need a click in Settings.
-      - uses: actions/configure-pages@v5
-        with:
-          enablement: true
-      - uses: actions/upload-pages-artifact@v3
+      - uses: actions/checkout@v7
+      # Pages is enabled on the repository itself (Settings → Pages → GitHub
+      # Actions). The action's `enablement` input cannot do it from here: it
+      # needs a token with more than `GITHUB_TOKEN` carries.
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
         with:
           path: site
-      - uses: actions/deploy-pages@v4
+      - uses: actions/deploy-pages@v5
         id: deploy
