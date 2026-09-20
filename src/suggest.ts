@@ -16,7 +16,6 @@ import {
   type Item,
 } from './db.ts';
 import { daysBetween, weekday } from './dates.ts';
-import { vegetarianOk } from './week.ts';
 
 export type Reason =
   /** Out of rotation. Still reachable through the search field, never offered. */
@@ -30,7 +29,6 @@ export type Reason =
   | { axis: 'pair'; partner: string }
   /** The plate is still missing this part. */
   | { axis: 'gap'; component: Component }
-  | { axis: 'veg' }
   | { axis: 'fresh' }
   /** Days between that evening and this one; negative when it is still ahead. */
   | { axis: 'recency'; days: number };
@@ -46,7 +44,6 @@ const WEIGHT = {
   // the family already gave — but it sinks the item, it does not hide it.
   retired: -10,
   tooMuch: -3,
-  fillsVegGap: 2,
   fillsGap: 2,
   pairedBefore: 1,
   standsAlone: 1,
@@ -61,7 +58,7 @@ const WEIGHT = {
 /** One shared evening is worth about as much as novelty, two outweigh it. */
 const PAIR_CAP = 2;
 
-/** As many items as the history and the plate can point at. The two outrank it. */
+/** As many items as the history and the plate can point at, and no more. */
 const PLATE_MAX = 3;
 
 /** What a plate is short of. `extra` is never missing, `whole` is never a part. */
@@ -97,8 +94,6 @@ type Evening = {
   date: string;
   effort: Effort;
   empty: boolean;
-  /** The plate has something on it, and nothing meatless. */
-  vegGap: boolean;
   /** The parts the plate already carries. */
   covered: Set<Component>;
   /** The parts it is still short of — empty before it starts and once it is finished. */
@@ -146,11 +141,6 @@ function weigh(item: Item, evening: Evening, pairing?: Pairing): Ranked {
     reason ??= { axis: 'gap', component: item.component! };
   }
 
-  if (evening.vegGap && item.vegetarian) {
-    score += WEIGHT.fillsVegGap;
-    reason ??= { axis: 'veg' };
-  }
-
   if (item.last_used === null) {
     score += WEIGHT.neverPlanned;
     reason ??= { axis: 'fresh' };
@@ -182,9 +172,6 @@ function rank(date: string): Ranked[] {
     date,
     effort: effortGrid()[weekday(date)]!,
     empty: plate.length === 0,
-    // An empty evening has no gap yet — every evening starts without one, and a
-    // permanent bonus for meatless items would be a thumb on the scale.
-    vegGap: plate.length > 0 && !vegetarianOk(plate),
     covered,
     // A plate that has not started is short of nothing, and neither is one a
     // `whole` item has finished — that is all `whole` means.
@@ -240,12 +227,6 @@ export function fillEvening(date: string): Item[] {
     const next = candidates().find((candidate) => candidate.pairs > 0 || candidate.fills);
     if (!next) break;
     addToPlan(date, next.item.id);
-  }
-
-  // The one hard rule in the app, so it outranks the size of the plate.
-  if (!vegetarianOk(plateOf(date))) {
-    const meatless = candidates().find(({ item }) => item.vegetarian)?.item;
-    if (meatless) addToPlan(date, meatless.id);
   }
 
   return plateOf(date);

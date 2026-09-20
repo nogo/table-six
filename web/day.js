@@ -23,7 +23,6 @@ const REASON = {
   doubled: (reason) => `schon ${componentName(reason.component)} dabei`,
   pair: (reason) => `zuletzt mit ${reason.partner}`,
   gap: (reason) => `${componentName(reason.component)} fehlt noch`,
-  veg: () => 'macht es vegetarisch',
   fresh: () => 'noch nie geplant',
   recency: (reason) =>
     reason.days > 0 ? `vor ${reason.days} ${reason.days === 1 ? 'Tag' : 'Tagen'}` : 'schon eingeplant',
@@ -157,7 +156,6 @@ class DayFocus extends AurilElement {
       <button class="row ${action}" id="${prefix}-${item.id}" data-id="${item.id}">
         <span class="grow">${item.name}</span>
         ${reason && html`<span class="reason">${reason}</span>`}
-        ${item.vegetarian && html`<span class="mark">🌱</span>`}
         <span class="${action}-mark">${mark}</span>
       </button>`;
   }
@@ -189,8 +187,6 @@ class DayFocus extends AurilElement {
         </div>
         ${tooMuch.length > 0 && html`
           <p class="hint warn">⚠︎ Aufwendiger als ein ${EVENING[day.effort]}: ${tooMuch.map((/** @type {any} */ i) => i.name).join(', ')}.</p>`}
-        ${day.items.length > 0 && !day.vegetarian && html`
-          <p class="hint">Nichts Vegetarisches dabei.</p>`}
       </header>
 
       <section class="column wide plate-list">

@@ -42,7 +42,7 @@ width changes the layout, never the app. Exactly one breakpoint (~48 rem):
   DONNERSTAG 20      NORMAL
      –
   ───────────────────────────
-  SONNTAG  23   HEUTE    🌱
+  SONNTAG  23          HEUTE
      Käsefondue
   ───────────────────────────
   ‹          today          ›
@@ -56,7 +56,6 @@ not a board, and the reason this view exists is gone. Everything follows:
 - An empty day is a dash, not an alarm.
 - `⚠` means the evening blows the effort level. A hint; the reason in plain
   words lives in the day focus.
-- `🌱` marks an evening the two vegetarians can build a plate from.
 - If seven rows ever stop fitting, the effort level leaves the row first, then
   the date.
 
@@ -113,9 +112,9 @@ create, rename, delete, pause, set roles and levels.
   that needs one is `schnell` / `mittel` / `aufwendig`.
 - **Search sits under the header, the filter is one button beside the name.**
   Both stay put while the list scrolls — they are how a long inventory becomes
-  finishable in sittings. The filter cycles through `alle`, `vegetarisch`,
-  `ohne Rolle`, `ungenutzt` the way the editor's chips cycle, and it turns
-  brass while it is hiding rows.
+  finishable in sittings. The filter cycles through `alle`, `ohne Rolle`,
+  `ungenutzt` the way the editor's chips cycle, and it turns brass while it is
+  hiding rows.
 - **The bar belongs to the editor alone.** It exists while a row is open and
   is not there otherwise.
 - It may scroll. It is a list and admits to being one.
@@ -173,11 +172,8 @@ Colour is scarce, so symbols carry every state that isn't "today" or "careful".
 | | means |
 |---|---|
 | `⚠` | blows the effort level — a hint, not a veto |
-| `🌱` | the two vegetarians can build a plate from this evening |
 | `–` | empty, and that's fine |
 | `●` | this week — between `‹` and `›`, and where they lead back to |
-
-`🌱` is a symbol and not a colour: brass already means three things.
 
 The three week controls are the one place a glyph stands without a word: they
 are one group, they are the only navigation on that line, and three labels

@@ -13,8 +13,8 @@ const send = (method: string, path: string, body?: unknown) =>
     body: body === undefined ? undefined : JSON.stringify(body),
   });
 
-const item = async (name: string, vegetarian = false, effort = 'normal') =>
-  (await (await send('POST', '/api/items', { name, vegetarian, effort })).json()) as { id: number; name: string };
+const item = async (name: string, effort = 'normal') =>
+  (await (await send('POST', '/api/items', { name, effort })).json()) as { id: number; name: string };
 
 beforeEach(() => {
   db.exec('DELETE FROM plan; DELETE FROM items; DELETE FROM weekday_effort');
@@ -23,7 +23,7 @@ beforeEach(() => {
 test('a name is enough to create an item', async () => {
   const response = await send('POST', '/api/items', { name: '  Rote   Bete ' });
   expect(response.status).toBe(201);
-  expect(await response.json()).toMatchObject({ name: 'Rote Bete', vegetarian: false, effort: 'normal' });
+  expect(await response.json()).toMatchObject({ name: 'Rote Bete', effort: 'normal' });
 });
 
 test('creating a name that exists hands back that item', async () => {
@@ -46,13 +46,13 @@ test('renaming into an existing name is refused, not silently merged', async () 
 });
 
 test('a patch touches only the fields it names', async () => {
-  const nudeln = await item('Nudeln', true, 'kurz');
+  const nudeln = await item('Nudeln', 'kurz');
   const patched = await (await send('PATCH', `/api/items/${nudeln.id}`, { effort: 'entspannt' })).json();
-  expect(patched).toMatchObject({ name: 'Nudeln', vegetarian: true, effort: 'entspannt' });
+  expect(patched).toMatchObject({ name: 'Nudeln', effort: 'entspannt' });
 });
 
 test('an evening is filled and emptied one tap at a time', async () => {
-  const nudeln = await item('Nudeln', true, 'kurz');
+  const nudeln = await item('Nudeln', 'kurz');
   expect((await send('PUT', `/api/plan/2026-08-19/${nudeln.id}`)).status).toBe(204);
   expect((await send('PUT', `/api/plan/2026-08-19/${nudeln.id}`)).status).toBe(204); // twice is once
 

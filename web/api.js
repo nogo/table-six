@@ -25,11 +25,11 @@ export const getItems = () => request('/api/items');
  *  @param {string} date */
 export const getSuggestions = (date) => request(`/api/suggestions/${date}`);
 
-/** @param {string} name @param {{vegetarian?: boolean, effort?: string, component?: string | null}} [fields] */
+/** @param {string} name @param {{effort?: string, component?: string | null}} [fields] */
 export const createItem = (name, fields = {}) => send('POST', '/api/items', { name, ...fields });
 
 /** @param {number} id
- *  @param {{name?: string, vegetarian?: boolean, effort?: string, component?: string | null, retired?: boolean}} fields */
+ *  @param {{name?: string, effort?: string, component?: string | null, retired?: boolean}} fields */
 export const patchItem = (id, fields) => send('PATCH', `/api/items/${id}`, fields);
 
 /** Only for an item nobody has cooked; one that has been on an evening is

@@ -156,7 +156,7 @@ main.column { padding-bottom: env(safe-area-inset-bottom); }
 .day-head .grow { flex: 1; }
 .day-head .mark { font-size: 13px; }
 /* The warning is a state, so it takes the brass: ask for the text glyph, not
-   the colour emoji. 🌱 has no text presentation and stays as it is. */
+   the colour emoji. */
 .mark.warn { font-variant-emoji: text; }
 
 .day.today .name, .day.today .date { color: var(--brass); }
@@ -219,7 +219,6 @@ main.column { padding-bottom: env(safe-area-inset-bottom); }
   font-size: 17px;
 }
 .row:active .x-mark { color: var(--brass); }
-.row .mark { font-size: 13px; padding-right: 8px; }
 .row .reason { font-size: 13px; color: var(--soft); padding-right: 12px; }
 
 .hint { color: var(--soft); font-size: 15px; padding: 12px 0; }

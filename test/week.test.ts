@@ -18,9 +18,9 @@ test('an empty week is seven evenings with nothing on them', () => {
 });
 
 test('a plate keeps the order it was filled in', () => {
-  const potatoes = createItem('Kartoffeln', true, 'normal');
-  const broccoli = createItem('Broccoli', true, 'kurz');
-  const sausage = createItem('Bratwurst', false, 'kurz');
+  const potatoes = createItem('Kartoffeln', 'normal');
+  const broccoli = createItem('Broccoli', 'kurz');
+  const sausage = createItem('Bratwurst', 'kurz');
   for (const item of [potatoes, broccoli, sausage]) addToPlan(WEDNESDAY, item.id);
 
   const wednesday = buildWeek(MONDAY).days[2]!;
@@ -37,24 +37,14 @@ test('the effort grid recurs by weekday, not by date', () => {
 
 test('an evening blows a short day as soon as one item asks for more', () => {
   setWeekdayEffort(3, 'kurz');
-  addToPlan(WEDNESDAY, createItem('Nudeln', true, 'kurz').id);
+  addToPlan(WEDNESDAY, createItem('Nudeln', 'kurz').id);
   expect(buildWeek(MONDAY).days[2]!.overEffort).toBe(false);
 
-  addToPlan(WEDNESDAY, createItem('Lasagne', false, 'entspannt').id);
+  addToPlan(WEDNESDAY, createItem('Lasagne', 'entspannt').id);
   expect(buildWeek(MONDAY).days[2]!.overEffort).toBe(true);
 });
 
-test('one meatless item makes the evening work for the two vegetarians', () => {
-  addToPlan(WEDNESDAY, createItem('Bratwurst', false, 'kurz').id);
-  expect(buildWeek(MONDAY).days[2]!.vegetarian).toBe(false);
-
-  addToPlan(WEDNESDAY, createItem('Kartoffeln', true, 'normal').id);
-  expect(buildWeek(MONDAY).days[2]!.vegetarian).toBe(true); // they leave the sausage out
-});
-
-test('an empty evening is neither a warning nor vegetarian', () => {
+test('an empty evening is not a warning', () => {
   setWeekdayEffort(3, 'kurz');
-  const wednesday = buildWeek(MONDAY).days[2]!;
-  expect(wednesday.overEffort).toBe(false);
-  expect(wednesday.vegetarian).toBe(false);
+  expect(buildWeek(MONDAY).days[2]!.overEffort).toBe(false);
 });

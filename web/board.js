@@ -30,7 +30,6 @@ class WeekBoard extends AurilElement {
           <span class="grow"></span>
           ${isToday ? html`<span class="effort today-mark">heute</span>` : html`<span class="effort">${day.effort}</span>`}
           ${day.overEffort && html`<span class="mark warn">⚠︎</span>`}
-          ${day.vegetarian && html`<span class="mark">🌱</span>`}
         </span>
         <span class="plate ${day.items.length ? '' : 'empty'}">
           ${day.items.length ? day.items.map((item) => item.name).join(' · ') : '–'}

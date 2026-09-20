@@ -1,6 +1,6 @@
 // The inventory — `Bestand` on screen. Not a planning screen: this is where
-// the item list is built and kept honest — create, rename, delete, mark
-// vegetarian, set the role and the level.
+// the item list is built and kept honest — create, rename, delete, set the
+// role and the level.
 import { AurilElement, html } from './auril/index.js';
 import { createItem, deleteItem, patchItem } from './api.js';
 import { loadItems, loadWeek, store } from './app.js';
@@ -11,7 +11,6 @@ import { COMPONENT_ORDER, componentName, effortName } from './items.js';
 
 const FILTERS = [
   ['all', 'alle'],
-  ['vegetarian', 'vegetarisch'],
   ['unsorted', 'ohne Rolle'],
   ['unused', 'ungenutzt'],
 ];
@@ -19,7 +18,6 @@ const FILTERS = [
 /** What each filter keeps. `ohne Rolle` is how the curation gets finished. */
 const MATCHES = {
   all: () => true,
-  vegetarian: (/** @type {any} */ item) => item.vegetarian,
   unsorted: (/** @type {any} */ item) => item.component === null,
   unused: (/** @type {any} */ item) => !item.last_used,
 };
@@ -51,11 +49,6 @@ class ItemInventory extends AurilElement {
       // The bar grew by a line or two, which can leave the row behind it.
       // `nearest` moves by the minimum and does nothing when it already fits.
       if (this.#editing === id) this.querySelector(`#item-${id}`)?.scrollIntoView({ block: 'nearest' });
-    });
-
-    this.delegate('click', '.veg', (_, el) => {
-      const item = this.#item(this.#id(el));
-      if (item) this.#write(patchItem(item.id, { vegetarian: !item.vegetarian }));
     });
 
     this.delegate('click', '.cycle', (_, el) => {
@@ -195,7 +188,6 @@ class ItemInventory extends AurilElement {
         <button class="row open" aria-expanded="${open}">
           <span class="grow">${item.name}</span>
           ${this.#note(item) && html`<span class="reason">${this.#note(item)}</span>`}
-          ${item.vegetarian && html`<span class="mark">🌱</span>`}
           <span class="effort">${effortName(item.effort)}</span>
         </button>
       </div>`;
@@ -229,7 +221,6 @@ class ItemInventory extends AurilElement {
           <button class="close" type="button">fertig</button>
         </label>
         <div class="item-controls">
-          <button class="veg">${item.vegetarian ? '🌱 vegetarisch' : 'mit Fleisch'}</button>
           <button class="cycle">${effortName(item.effort)}</button>
           <button class="role">${componentName(item.component)}</button>
           ${this.#retireOrDelete(item)}

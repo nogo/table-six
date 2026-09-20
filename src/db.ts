@@ -22,7 +22,6 @@ export const COMPONENTS: Component[] = ['base', 'vegetable', 'protein', 'extra',
 export type Item = {
   id: number;
   name: string;
-  vegetarian: boolean;
   effort: Effort;
   component: Component | null;
   /** Out of rotation: it keeps every evening it was on, it is never proposed. */
@@ -34,36 +33,31 @@ export type Item = {
 // ── items ────────────────────────────────────────────────────────────────────
 
 const ITEM_COLUMNS = `
-  items.id, items.name, items.vegetarian, items.effort, items.component, items.retired,
+  items.id, items.name, items.effort, items.component, items.retired,
   (SELECT MAX(plan.date) FROM plan WHERE plan.item_id = items.id) AS last_used
 `;
 
 type ItemRow = {
   id: number;
   name: string;
-  vegetarian: number;
   effort: Effort;
   component: Component | null;
   retired: number;
   last_used: string | null;
 };
 
-const toItem = (row: ItemRow): Item => ({
-  ...row,
-  vegetarian: row.vegetarian === 1,
-  retired: row.retired === 1,
-});
+const toItem = (row: ItemRow): Item => ({ ...row, retired: row.retired === 1 });
 
 /** The inventory, most recently planned first — the order `Bestand` shows. */
 const listItemsStmt = db.query<ItemRow, []>(
   `SELECT ${ITEM_COLUMNS} FROM items ORDER BY last_used DESC NULLS LAST, items.name COLLATE NOCASE`,
 );
 const getItemStmt = db.query<ItemRow, [number]>(`SELECT ${ITEM_COLUMNS} FROM items WHERE items.id = ?`);
-const insertItemStmt = db.query<{ id: number }, [string, number, Effort, Component | null]>(
-  'INSERT INTO items (name, vegetarian, effort, component) VALUES (?, ?, ?, ?) RETURNING id',
+const insertItemStmt = db.query<{ id: number }, [string, Effort, Component | null]>(
+  'INSERT INTO items (name, effort, component) VALUES (?, ?, ?) RETURNING id',
 );
-const updateItemStmt = db.query<null, [string, number, Effort, Component | null, number, number]>(
-  'UPDATE items SET name = ?, vegetarian = ?, effort = ?, component = ?, retired = ? WHERE id = ?',
+const updateItemStmt = db.query<null, [string, Effort, Component | null, number, number]>(
+  'UPDATE items SET name = ?, effort = ?, component = ?, retired = ? WHERE id = ?',
 );
 const deleteItemStmt = db.query<null, [number]>('DELETE FROM items WHERE id = ?');
 
@@ -74,23 +68,22 @@ export const getItem = (id: number): Item | null => {
   return row ? toItem(row) : null;
 };
 
-export function createItem(name: string, vegetarian: boolean, effort: Effort, component: Component | null = null): Item {
-  const { id } = insertItemStmt.get(name, vegetarian ? 1 : 0, effort, component)!;
+export function createItem(name: string, effort: Effort, component: Component | null = null): Item {
+  const { id } = insertItemStmt.get(name, effort, component)!;
   return getItem(id)!;
 }
 
 /** Everything an item is, in one go — the PATCH route fills in what it kept. */
 export type ItemFields = {
   name: string;
-  vegetarian: boolean;
   effort: Effort;
   component: Component | null;
   retired: boolean;
 };
 
 export function updateItem(id: number, fields: ItemFields): Item | null {
-  const { name, vegetarian, effort, component, retired } = fields;
-  updateItemStmt.run(name, vegetarian ? 1 : 0, effort, component, retired ? 1 : 0, id);
+  const { name, effort, component, retired } = fields;
+  updateItemStmt.run(name, effort, component, retired ? 1 : 0, id);
   return getItem(id);
 }
 

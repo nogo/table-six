@@ -54,6 +54,13 @@ const MIGRATIONS: ((db: Database) => void)[] = [
       db.exec('ALTER TABLE items ADD COLUMN retired INTEGER NOT NULL DEFAULT 0');
     }
   },
+
+  // 2 — vegetarian goes. Whatever is usually meat has a meatless version, and
+  // there is always something on the table the two can eat, so the flag said
+  // nothing the family did not already know.
+  (db) => {
+    if (hasColumn(db, 'items', 'vegetarian')) db.exec('ALTER TABLE items DROP COLUMN vegetarian');
+  },
 ];
 
 /** Bring a database up to the last step. Running it again does nothing. */

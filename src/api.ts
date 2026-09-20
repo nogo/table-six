@@ -85,7 +85,7 @@ export const routes = {
       if (!isComponent(component)) return bad(`component must be null or one of ${COMPONENTS.join(', ')}`);
       const existing = listItems().find((item) => item.name.toLowerCase() === name.toLowerCase());
       if (existing) return Response.json(existing);
-      const item = createItem(name, fields.vegetarian === true, effort, component);
+      const item = createItem(name, effort, component);
       publish('items');
       return Response.json(item, { status: 201 });
     },
@@ -102,7 +102,6 @@ export const routes = {
       if (!name) return bad('name must be 1–60 characters');
       const effort = fields.effort === undefined ? item.effort : fields.effort;
       if (!isEffort(effort)) return bad(`effort must be one of ${EFFORT_ORDER.join(', ')}`);
-      const vegetarian = fields.vegetarian === undefined ? item.vegetarian : fields.vegetarian === true;
       const component = fields.component === undefined ? item.component : fields.component;
       if (!isComponent(component)) return bad(`component must be null or one of ${COMPONENTS.join(', ')}`);
       const retired = fields.retired === undefined ? item.retired : fields.retired === true;
@@ -112,7 +111,7 @@ export const routes = {
       );
       if (clash) return Response.json({ error: 'name exists', item: clash }, { status: 409 });
 
-      const updated = updateItem(item.id, { name, vegetarian, effort, component, retired }) as Item;
+      const updated = updateItem(item.id, { name, effort, component, retired }) as Item;
       publish('items'); // a name travels onto every board it is planned on
       return Response.json(updated);
     },

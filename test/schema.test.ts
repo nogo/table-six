@@ -30,9 +30,10 @@ test('an empty database comes out with the whole schema', () => {
 
   expect(columns(db, 'items')).toContain('component');
   expect(columns(db, 'items')).toContain('retired');
+  expect(columns(db, 'items')).not.toContain('vegetarian');
   expect(columns(db, 'plan')).toEqual(['date', 'item_id', 'position']);
   expect(columns(db, 'weekday_effort')).toEqual(['weekday', 'effort']);
-  expect(version(db)).toBe(1);
+  expect(version(db)).toBe(2);
 });
 
 test('a database from before the ledger gets the missing columns and keeps its items', () => {
@@ -41,8 +42,9 @@ test('a database from before the ledger gets the missing columns and keeps its i
 
   expect(columns(db, 'items')).toContain('component');
   expect(columns(db, 'items')).toContain('retired');
+  expect(columns(db, 'items')).not.toContain('vegetarian');
   expect(db.query<{ n: number }, []>('SELECT count(*) AS n FROM items').get()!.n).toBe(2);
-  expect(version(db)).toBe(1);
+  expect(version(db)).toBe(2);
 });
 
 test('migrating a second time changes nothing', () => {
@@ -54,7 +56,7 @@ test('migrating a second time changes nothing', () => {
 
   expect(db.query<{ component: string | null }, [string]>('SELECT component FROM items WHERE name = ?').get('Kartoffeln'))
     .toEqual({ component: 'base' });
-  expect(version(db)).toBe(1);
+  expect(version(db)).toBe(2);
 });
 
 test('a step that throws leaves the database at the version it had', () => {
@@ -64,11 +66,11 @@ test('a step that throws leaves the database at the version it had', () => {
   expect(() =>
     db.transaction(() => {
       db.exec('ALTER TABLE items ADD COLUMN nonsense TEXT');
-      db.exec('PRAGMA user_version = 2');
+      db.exec('PRAGMA user_version = 3');
       throw new Error('half a step');
     })(),
   ).toThrow('half a step');
 
   expect(columns(db, 'items')).not.toContain('nonsense');
-  expect(version(db)).toBe(1);
+  expect(version(db)).toBe(2);
 });

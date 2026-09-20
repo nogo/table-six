@@ -2,8 +2,8 @@
 
 Weekly meal planning for a six-person household, running locally. An evening is
 a **set of items**, not a dish — potatoes, broccoli and bratwurst is one meal
-for all six, and the two vegetarians leave out one item. The app suggests, it
-never decides: every slot is overwritable, every warning is a hint.
+for all six, and whoever does not want an item leaves it out. The app
+suggests, it never decides: every slot is overwritable, every warning is a hint.
 
 Outcome, value and constraints are in [`docs/project.md`](docs/project.md), the
 screens and the visual guardrails in [`docs/ui.md`](docs/ui.md). Both are rules,

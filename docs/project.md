@@ -5,8 +5,8 @@ suggestions. **The app suggests, it does not decide** — every slot is freely
 overwritable, every warning is a hint, never a veto.
 
 **An evening is a set of items, not a dish.** Potatoes, broccoli and bratwurst
-is one meal for all six; the two vegetarians leave out one item. The component
-plate is the data model, not a feature.
+is one meal for all six; whoever does not want an item leaves it out. The
+component plate is the data model, not a feature.
 
 ## Rules
 
@@ -23,7 +23,6 @@ plate is the data model, not a feature.
 On Sunday, within a few minutes, a weekly plan that
 
 - fits the time actually available on each individual weekday,
-- serves the two vegetarian eaters as equals, not as a special case,
 - knows the preferences of all six and knows them better over time,
 - treats leftovers and cold supper as full-value slots,
 - assigns the two older daughters a predictable cooking duty.
@@ -43,9 +42,6 @@ On Sunday, within a few minutes, a weekly plan that
 
 ### Hard
 
-- **Vegetarian:** wife (45) and eldest daughter (15). Never overridable.
-- **Vegetarian is a property of the item, never of the evening.** An evening
-  works if those two can build a plate from it — not if everything is meatless.
 - **A plate is a set of parts, and an item carries one:** `Sättigung`,
   `Gemüse`, `Protein`, `Extra`, or `Komplett`. The last is an evening on its
   own and wants nothing beside it; `Extra` is never missing from a plate.
