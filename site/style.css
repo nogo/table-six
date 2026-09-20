@@ -1,0 +1,113 @@
+/* The page wears the app's colours: one accent, hairlines instead of boxes,
+   type doing the work a card would otherwise do. */
+:root {
+  --ground: #1a1815;
+  --surface: #221f1b;
+  --line: #35302a;
+  --bone: #f4efe6;
+  --soft: #9c9186;
+  --brass: #d9a441;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  padding: 48px 20px 64px;
+  background: var(--ground);
+  color: var(--bone);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.55;
+}
+
+.column { max-width: 62rem; margin: 0 auto; }
+
+header { display: flex; align-items: baseline; gap: 16px; }
+header .grow { flex: 1; }
+
+h1 {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+}
+
+a { color: var(--brass); }
+
+.lead {
+  margin: 24px 0 0;
+  font-size: 21px;
+  max-width: 42rem;
+}
+
+.lead strong { font-weight: 600; }
+
+h2 {
+  margin: 56px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: .1em;
+  color: var(--soft);
+  border-top: 1px solid var(--line);
+  padding-top: 12px;
+}
+
+.screens {
+  display: grid;
+  gap: 32px;
+  grid-template-columns: repeat(3, 1fr);
+  margin: 24px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.screens figure { margin: 0; }
+
+.screens img {
+  width: 100%;
+  height: auto;
+  display: block;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+}
+
+.screens figcaption { margin: 12px 2px 0; font-size: 15px; color: var(--soft); }
+.screens b { color: var(--bone); font-weight: 600; }
+
+ul.plain { margin: 20px 0 0; padding-left: 20px; }
+ul.plain li { margin: 8px 0; }
+
+code {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 2px 6px;
+  font-size: 15px;
+}
+
+pre {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  overflow-x: auto;
+}
+
+pre code { background: none; border: 0; padding: 0; }
+
+footer {
+  margin-top: 56px;
+  border-top: 1px solid var(--line);
+  padding-top: 16px;
+  color: var(--soft);
+  font-size: 15px;
+}
+
+/* One breakpoint, like the app: the three phones stack. */
+@media (max-width: 48rem) {
+  .screens { grid-template-columns: 1fr; max-width: 24rem; }
+}

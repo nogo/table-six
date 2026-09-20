@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Table Six — weekly meal planning</title>
+  <meta name="description" content="Weekly meal planning for a household. An evening is a set of items, not a dish.">
+  <meta name="theme-color" content="#1a1815">
+  <link rel="stylesheet" href="style.css">
+  <link rel="icon" href="icon.svg" type="image/svg+xml">
+  <link rel="alternate" hreflang="de" href="de.html">
+</head>
+<body>
+  <div class="column">
+    <header>
+      <h1>Table Six</h1>
+      <span class="grow"></span>
+      <a href="de.html" hreflang="de">Deutsch</a>
+    </header>
+
+    <p class="lead">
+      Weekly meal planning for a household. <strong>An evening is a set of items, not a dish</strong> —
+      potatoes, broccoli and bratwurst is one meal for everyone at the table, and whoever does not want
+      an item leaves it out. <strong>The app suggests, it never decides:</strong> every slot is
+      overwritable, every warning is a hint.
+    </p>
+
+    <h2>Three screens</h2>
+    <div class="screens">
+      <figure>
+        <img src="screens/board-en.png" width="780" height="1688" alt="The week board: seven evenings with their plates and effort levels.">
+        <figcaption><b>The week.</b> Seven evenings on one phone screen, no scrolling. Plate, effort
+          level, and a warning when an evening asks for more time than the weekday has.</figcaption>
+      </figure>
+      <figure>
+        <img src="screens/day-en.png" width="780" height="1688" alt="One evening with its suggestions, each carrying a reason.">
+        <figcaption><b>One evening.</b> One tap adds, one tap removes, written immediately. Every
+          suggestion carries its reason in plain words — never a score.</figcaption>
+      </figure>
+      <figure>
+        <img src="screens/items-en.png" width="780" height="1688" alt="The item list with the part each item plays on a plate.">
+        <figcaption><b>The items.</b> Built by hand and kept honest: what part an item plays on a
+          plate, how much work it is, and what is paused.</figcaption>
+      </figure>
+    </div>
+
+    <h2>How it suggests</h2>
+    <ul class="plain">
+      <li><b>Rhythm, not recency.</b> Every item keeps its own cadence, read off its own history —
+        bread after three days and a roast after a month are both due.</li>
+      <li><b>Only combinations that were eaten.</b> A proposed evening grows through plates the
+        household has actually had, never by assembling parts that have never met.</li>
+      <li><b>Time is first class.</b> Each weekday has an effort level, and an evening that asks for
+        more says so — as a hint, never a veto.</li>
+      <li><b>Nothing is hidden.</b> The worst item in the list still shows up; it just shows up last.</li>
+    </ul>
+
+    <h2>Running it</h2>
+    <p>Bun, SQLite and TypeScript, <a href="https://github.com/nogo/auril">auril.js</a> on the front.
+      One language, one database, one process — no build step and no runtime dependencies.</p>
+    <pre><code>bun src/server.ts                    # http://localhost:4173
+TABLE_SIX_LANG=en bun src/server.ts  # English instead of German</code></pre>
+    <p>The interface speaks German or English, one language per deployment.</p>
+
+    <footer>
+      <a href="https://github.com/nogo/table-six">github.com/nogo/table-six</a> — a household tool,
+      not a product.
+    </footer>
+  </div>
+</body>
+</html>
