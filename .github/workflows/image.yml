@@ -48,6 +48,9 @@ jobs:
           context: .
           platforms: linux/amd64,linux/arm64
           push: true
+          # The same commit the image is tagged with, baked in: the phones name
+          # their cache after it and pick the new screens up on the next open.
+          build-args: VERSION=${{ github.sha }}
           tags: |
             ${{ env.IMAGE }}:latest
             ${{ env.IMAGE }}:${{ github.sha }}

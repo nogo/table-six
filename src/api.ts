@@ -52,6 +52,11 @@ const asId = (value: string | undefined): number | null => {
 };
 
 export const routes = {
+  // What this deployment is. Behind `/api/`, which the service worker never
+  // caches, so a phone that has been asleep for a week can ask the server the
+  // one question the cache cannot answer honestly.
+  '/api/version': () => Response.json({ version: process.env.TABLE_SIX_VERSION || 'dev' }),
+
   // One week, Monday to Sunday. `start` is any day inside it.
   '/api/week': (request: Request) => {
     const start = new URL(request.url).searchParams.get('start') ?? today();

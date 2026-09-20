@@ -91,4 +91,33 @@ router.start();
 startSync();
 
 // The shell comes off the home screen; the plan always comes from the server.
-navigator.serviceWorker?.register('/sw.js');
+// The version travels in the URL: a new deployment is a new script URL, which
+// is what makes the browser install it, and the worker names its cache after
+// it. `updateViaCache: 'none'` keeps the HTTP cache out of that decision.
+const version = document.documentElement.dataset.version ?? 'dev';
+
+// Whether this page started out controlled. A first registration also hands
+// over control, and reloading for that would be a loop on the first visit.
+const wasControlled = Boolean(navigator.serviceWorker?.controller);
+
+navigator.serviceWorker?.register(`/sw.js?v=${version}`, { updateViaCache: 'none' });
+
+// A worker from a newer deployment has taken over. The screens on this page
+// came out of the old one's cache, so this reload is what actually makes the
+// new version visible — once, because the next load starts controlled by it.
+navigator.serviceWorker?.addEventListener('controllerchange', () => {
+  if (wasControlled) location.reload();
+});
+
+// The app is never closed in a kitchen, only put down, and a page nobody
+// navigates learns nothing. Coming back to it, ask the server what it is
+// serving — `/api/` is the one path the worker never answers from its cache.
+document.addEventListener('visibilitychange', async () => {
+  if (document.visibilityState !== 'visible') return;
+  try {
+    const { version: deployed } = await (await fetch('/api/version')).json();
+    if (deployed !== version) location.reload();
+  } catch {
+    // Offline. There is nothing to update to, and the week on screen stays.
+  }
+});

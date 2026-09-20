@@ -21,6 +21,11 @@ ENV TZ=Europe/Berlin
 # The language the interface is served in: `de` or `en`, one per deployment.
 ENV TABLE_SIX_LANG=de
 
+# The commit this image was built from. It names the cache on every phone, so
+# a new image is a new cache and nobody is left on yesterday's screens.
+ARG VERSION=dev
+ENV TABLE_SIX_VERSION=$VERSION
+
 USER bun
 EXPOSE 4173
 CMD ["bun", "src/server.ts"]
