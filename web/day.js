@@ -15,6 +15,9 @@ const EVENING = { kurz: 'kurzer Abend', normal: 'normaler Abend', entspannt: 'en
  * job, like every other word the family reads. Never a number — while the log
  * is this thin a score would be a bogus one.
  */
+/** @param {number} days */
+const ago = (days) => `vor ${days} ${days === 1 ? 'Tag' : 'Tagen'}`;
+
 /** @type {Record<string, (reason: any) => string>} */
 const REASON = {
   retired: () => 'pausiert',
@@ -24,8 +27,8 @@ const REASON = {
   pair: (reason) => `zuletzt mit ${reason.partner}`,
   gap: (reason) => `${componentName(reason.component)} fehlt noch`,
   fresh: () => 'noch nie geplant',
-  recency: (reason) =>
-    reason.days > 0 ? `vor ${reason.days} ${reason.days === 1 ? 'Tag' : 'Tagen'}` : 'schon eingeplant',
+  due: (reason) => `wieder dran · ${ago(reason.days)}`,
+  recency: (reason) => (reason.days > 0 ? ago(reason.days) : 'schon eingeplant'),
 };
 
 /** @param {any} reason @returns {string} */

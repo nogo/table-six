@@ -10,6 +10,7 @@ import {
   effortGrid,
   listItems,
   planBetween,
+  planHistory,
   sharedEvenings,
   type Component,
   type Effort,
@@ -30,6 +31,8 @@ export type Reason =
   /** The plate is still missing this part. */
   | { axis: 'gap'; component: Component }
   | { axis: 'fresh' }
+  /** Back in the rhythm this item keeps for itself. */
+  | { axis: 'due'; days: number }
   /** Days between that evening and this one; negative when it is still ahead. */
   | { axis: 'recency'; days: number };
 
@@ -46,17 +49,20 @@ const WEIGHT = {
   tooMuch: -3,
   fillsGap: 2,
   pairedBefore: 1,
-  standsAlone: 1,
+  standsAlone: 0.5,
   crowdsThePlate: -2,
   doubled: -1,
-  neverPlanned: 1.5,
-  longAgo: 1,
-  aWhileAgo: 0.5,
+  // What the family has actually eaten outranks what it has never tried: one
+  // shared evening is worth two untouched items, and a staple that is due
+  // outranks both.
+  neverPlanned: 0.5,
+  /** Per cadence an item has been away — see `DUE_CAP`. */
+  overdue: 0.5,
   justHad: -2,
 };
 
-/** One shared evening is worth about as much as novelty, two outweigh it. */
-const PAIR_CAP = 2;
+/** Three shared evenings are as much as the pair axis can say. */
+const PAIR_CAP = 3;
 
 /** As many items as the history and the plate can point at, and no more. */
 const PLATE_MAX = 3;
@@ -64,9 +70,27 @@ const PLATE_MAX = 3;
 /** What a plate is short of. `extra` is never missing, `whole` is never a part. */
 const WANTED: Component[] = ['base', 'vegetable', 'protein'];
 
-const LONG_AGO = 28;
-const A_WHILE = 14;
-const JUST_HAD = 7;
+/**
+ * An item's rhythm is read off its own gaps, and two gaps are the fewest that
+ * can be told apart from an accident: eaten twice in one week is leftovers,
+ * eaten in the same gap three times is a habit.
+ */
+const ENOUGH_EVENINGS = 3;
+
+/** What an item nobody has repeated is taken to want: three weeks. */
+const USUAL_CADENCE = 21;
+
+/** Of its own cadence: under half is too soon, from nine tenths it is due. */
+const TOO_SOON = 0.5;
+const DUE = 0.9;
+
+/**
+ * How many of its own cadences being away can still speak for an item. It is
+ * what tells a staple from a one-off: bread three days late has been away one
+ * cadence over and over, a dish eaten once a month ago has been away 1.4 of
+ * the three weeks it borrowed.
+ */
+const DUE_CAP = 3;
 
 /** How often an item has shared a plate with the evening, and with what. */
 type Pairing = { evenings: number; partner: string };
@@ -89,6 +113,50 @@ function pairings(plate: Item[], nameOf: (id: number) => string): Map<number, Pa
   return new Map([...evenings].map(([id, dates]) => [id, { evenings: dates.size, partner: partner.get(id)! }]));
 }
 
+/**
+ * What an item's own history says about this evening: how far the nearest
+ * evening it has is, and the rhythm it keeps. `days` counts forward from that
+ * evening, so an item still ahead is negative.
+ */
+type Rhythm = { days: number; cadence: number };
+
+const median = (values: number[]): number => {
+  const sorted = [...values].sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 === 1 ? sorted[middle]! : (sorted[middle - 1]! + sorted[middle]!) / 2;
+};
+
+/**
+ * The rhythm of every item that has one, for this evening. The nearest evening
+ * is what counts, not the last one: a week being filled puts evenings on both
+ * sides of the one being ranked, and the one three days back is what says the
+ * item was just had.
+ *
+ * The cadence is the middle gap of the item's own history — the median, so the
+ * one holiday week the family ate nothing but bread does not become the rule.
+ * Fewer than `ENOUGH_EVENINGS` says nothing yet, and the item borrows the
+ * household's usual three weeks.
+ */
+function rhythms(date: string, history: Map<number, string[]>): Map<number, Rhythm> {
+  const rhythms = new Map<number, Rhythm>();
+
+  for (const [id, dates] of history) {
+    let days = daysBetween(dates[0]!, date);
+    for (const evening of dates) {
+      const distance = daysBetween(evening, date);
+      // Ties go to the evening already eaten: it is the one that is certain.
+      if (Math.abs(distance) < Math.abs(days) || (Math.abs(distance) === Math.abs(days) && distance > 0)) {
+        days = distance;
+      }
+    }
+
+    const gaps = dates.slice(1).map((evening, index) => daysBetween(dates[index]!, evening));
+    rhythms.set(id, { days, cadence: dates.length >= ENOUGH_EVENINGS ? median(gaps) : USUAL_CADENCE });
+  }
+
+  return rhythms;
+}
+
 /** The shape of the evening every item is weighed against. */
 type Evening = {
   date: string;
@@ -105,7 +173,7 @@ type Evening = {
  * hesitate outranks why you would bother, and what the family has actually
  * cooked outranks what the plate is structurally short of.
  */
-function weigh(item: Item, evening: Evening, pairing?: Pairing): Ranked {
+function weigh(item: Item, evening: Evening, pairing?: Pairing, rhythm?: Rhythm): Ranked {
   let score = 0;
   let reason: Reason | null = null;
 
@@ -135,30 +203,35 @@ function weigh(item: Item, evening: Evening, pairing?: Pairing): Ranked {
     reason ??= { axis: 'pair', partner: pairing!.partner };
   }
 
-  const fills = item.component !== null && evening.missing.has(item.component);
-  if (fills) {
+  if (item.component !== null && evening.missing.has(item.component)) {
     score += WEIGHT.fillsGap;
     reason ??= { axis: 'gap', component: item.component! };
   }
 
-  if (item.last_used === null) {
+  if (!rhythm) {
     score += WEIGHT.neverPlanned;
     reason ??= { axis: 'fresh' };
   } else {
     // An evening three days ahead repeats as much as one three days back, so
-    // the distance counts and the direction does not.
-    const days = daysBetween(item.last_used, evening.date);
-    const apart = Math.abs(days);
-    score +=
-      apart >= LONG_AGO ? WEIGHT.longAgo : apart >= A_WHILE ? WEIGHT.aWhileAgo : apart < JUST_HAD ? WEIGHT.justHad : 0;
-    reason ??= { axis: 'recency', days };
+    // the penalty counts the distance and not the direction. Being due is the
+    // other way round: only an evening already eaten can say the rhythm is up.
+    const ratio = Math.abs(rhythm.days) / rhythm.cadence;
+    if (ratio < TOO_SOON) {
+      score += WEIGHT.justHad;
+      reason ??= { axis: 'recency', days: rhythm.days };
+    } else if (ratio >= DUE && rhythm.days > 0) {
+      score += Math.min(ratio, DUE_CAP) * WEIGHT.overdue;
+      reason ??= { axis: 'due', days: rhythm.days };
+    } else {
+      reason ??= { axis: 'recency', days: rhythm.days };
+    }
   }
 
-  return { item, reason, score, pairs, fills };
+  return { item, reason, score, pairs };
 }
 
 /** What the ranking knows. Only the item and its reason leave this file. */
-type Ranked = Suggestion & { score: number; pairs: number; fills: boolean };
+type Ranked = Suggestion & { score: number; pairs: number };
 
 function rank(date: string): Ranked[] {
   const plate = planBetween(date, date).get(date) ?? [];
@@ -166,6 +239,7 @@ function rank(date: string): Ranked[] {
   const items = listItems();
   const names = new Map(items.map((item) => [item.id, item.name]));
   const paired = pairings(plate, (id) => names.get(id) ?? '');
+  const rhythm = rhythms(date, planHistory());
   const covered = new Set(plate.map((item) => item.component).filter((c) => c !== null));
 
   const evening: Evening = {
@@ -182,7 +256,7 @@ function rank(date: string): Ranked[] {
 
   return items
     .filter((item) => !onPlate.has(item.id))
-    .map((item) => weigh(item, evening, paired.get(item.id)))
+    .map((item) => weigh(item, evening, paired.get(item.id), rhythm.get(item.id)))
     .sort(
       (a, b) =>
         b.score - a.score ||
@@ -200,14 +274,13 @@ export const suggest = (date: string): Suggestion[] =>
 const plateOf = (date: string): Item[] => planBetween(date, date).get(date) ?? [];
 
 /**
- * Fill an empty evening: the best item, then whatever that item has shared a
- * plate with before or the plate is still short of, until it points nowhere.
- * An evening that already has something on it is left alone — clearing a day
- * is how you ask again.
+ * Fill an empty evening: the best item, then whatever that item has actually
+ * been on a plate with, until it points nowhere. An evening that already has
+ * something on it is left alone — clearing a day is how you ask again.
  *
- * How far it fills is decided by the history and the plate, not by a number of
- * items: a `whole` item is the evening, and a combination nobody has cooked
- * out of items nobody has sorted gets one item. That is honest.
+ * How far it fills is decided by the history, not by a number of items: a
+ * `whole` item is the evening, and an item nobody has combined with anything
+ * gets the evening to itself. That is honest.
  */
 export function fillEvening(date: string): Item[] {
   if (plateOf(date).length > 0) return plateOf(date);
@@ -222,9 +295,10 @@ export function fillEvening(date: string): Item[] {
 
   // A `whole` item is the evening; nothing else belongs on that plate.
   while (first.component !== 'whole' && plateOf(date).length < PLATE_MAX) {
-    // The best candidate the plate actually points at — not simply the best
-    // one, or the evening would fill itself with unrelated favourites.
-    const next = candidates().find((candidate) => candidate.pairs > 0 || candidate.fills);
+    // Only what the family has actually put on one plate. A part the plate is
+    // structurally short of is a hint for the list, not a licence to combine:
+    // that is how three items that have never met end up on one evening.
+    const next = candidates().find((candidate) => candidate.pairs > 0);
     if (!next) break;
     addToPlan(date, next.item.id);
   }

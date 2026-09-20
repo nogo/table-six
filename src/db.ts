@@ -123,6 +123,25 @@ export function planBetween(from: string, to: string): Map<string, Item[]> {
   return plates;
 }
 
+const planHistoryStmt = db.query<{ item_id: number; date: string }, []>(
+  'SELECT item_id, date FROM plan ORDER BY item_id, date',
+);
+
+/**
+ * item id → every evening it has, oldest first. The whole plan, because an
+ * item's rhythm is read off all of its evenings, not off the last one. A
+ * household plans one evening a day, so this stays a few thousand rows.
+ */
+export function planHistory(): Map<number, string[]> {
+  const history = new Map<number, string[]>();
+  for (const { item_id, date } of planHistoryStmt.all()) {
+    const dates = history.get(item_id) ?? [];
+    dates.push(date);
+    history.set(item_id, dates);
+  }
+  return history;
+}
+
 export const addToPlan = (date: string, itemId: number): void => void addToPlanStmt.run(date, itemId, date);
 export const removeFromPlan = (date: string, itemId: number): void => void removeFromPlanStmt.run(date, itemId);
 

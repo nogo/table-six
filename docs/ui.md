@@ -76,15 +76,19 @@ not a board, and the reason this view exists is gone. Everything follows:
 - **One day fills the screen** — targets stay large, eight suggestions fit
   without scrolling.
 - **A suggestion is ranked for this evening, not for the inventory.** What is
-  already on the plate decides the order; an empty evening is ranked by what
-  has not been on the table for a while.
-- **Every suggestion carries its reason** in plain words („vor 21 Tagen",
-  „zuletzt mit Gnocchi", „zu aufwendig für kurz"). Never a score: while the log
+  already on the plate decides the order; an empty evening is ranked by the
+  rhythm each item keeps — how long it has been away, measured against its own
+  gaps, so bread after three days and a roast after a month are both due.
+- **Every suggestion carries its reason** in plain words („wieder dran · vor
+  11 Tagen", „zuletzt mit Gnocchi", „zu aufwendig für kurz"). Never a score: while the log
   is this thin a number would be bogus. Nothing is filtered away — the worst
   item in the inventory still shows up, it just shows up last.
 - **`Abend vorschlagen` proposes the whole evening**, and only ever fills a day
   that is still empty. Clearing a day is how you ask for another one; there is
   no re-roll, no confirming and nothing to undo.
+- **A proposal only combines what has been on one plate before.** A part the
+  plate is structurally short of is a hint in the list, never a licence to put
+  two items together that the family has never eaten together.
 - **One tap adds, one tap removes**, written immediately, no confirming.
 - **The search field sits at the bottom** and is at the same time the field for
   creating — what isn't found gets entered, and the field itself offers

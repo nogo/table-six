@@ -13,12 +13,15 @@ beforeEach(() => {
   db.exec('DELETE FROM plan; DELETE FROM items; DELETE FROM weekday_effort');
 });
 
-test('what was on the table yesterday goes last, what was never on it goes first', () => {
+test('what is due comes first, what was on the table yesterday last', () => {
   addToPlan('2026-08-16', createItem('Nudeln', 'kurz').id);
   addToPlan('2026-07-10', createItem('Linsen', 'normal').id); // five weeks back
   createItem('Reis', 'kurz');
 
-  expect(names(MONDAY)).toEqual(['Reis', 'Linsen', 'Nudeln']);
+  // Something the family has eaten and is due outranks something it has never
+  // tried; yesterday's evening sinks whatever else it has going for it.
+  expect(names(MONDAY)).toEqual(['Linsen', 'Reis', 'Nudeln']);
+  expect(reasonFor(MONDAY, 'Linsen')).toEqual({ axis: 'due', days: 38 });
   expect(reasonFor(MONDAY, 'Reis')).toEqual({ axis: 'fresh' });
   expect(reasonFor(MONDAY, 'Nudeln')).toEqual({ axis: 'recency', days: 1 });
 });
@@ -27,8 +30,33 @@ test('an evening still ahead repeats just as much as one already past', () => {
   addToPlan(THURSDAY, createItem('Nudeln', 'kurz').id);
   createItem('Reis', 'kurz');
 
+  // Three days ahead is as close as three days back, and neither is due.
   expect(names(MONDAY)).toEqual(['Reis', 'Nudeln']);
   expect(reasonFor(MONDAY, 'Nudeln')).toEqual({ axis: 'recency', days: -3 });
+});
+
+test('a rhythm is read off the item, leftovers are not a rhythm', () => {
+  const bread = createItem('Brot', 'kurz');
+  for (const date of ['2026-08-05', '2026-08-08', '2026-08-11']) addToPlan(date, bread.id);
+  const pizza = createItem('Pizza', 'normal');
+  for (const date of ['2026-08-10', '2026-08-11']) addToPlan(date, pizza.id); // eaten up the next day
+
+  // Bread keeps three-day gaps over three evenings, so six days on it is due.
+  // The pizza has one gap, which says nothing yet — six days is too soon for
+  // the three weeks an item without a rhythm of its own borrows.
+  expect(names(MONDAY)).toEqual(['Brot', 'Pizza']);
+  expect(reasonFor(MONDAY, 'Brot')).toEqual({ axis: 'due', days: 6 });
+  expect(reasonFor(MONDAY, 'Pizza')).toEqual({ axis: 'recency', days: 6 });
+});
+
+test('the nearest evening decides, not the last one', () => {
+  const nudeln = createItem('Nudeln', 'kurz');
+  addToPlan('2026-08-16', nudeln.id); // yesterday
+  addToPlan('2026-09-20', nudeln.id); // and again in five weeks, filled in later
+
+  // The evening five weeks out is the item's last one, and says nothing about
+  // this Monday — the one yesterday does.
+  expect(reasonFor(MONDAY, 'Nudeln')).toEqual({ axis: 'recency', days: 1 });
 });
 
 test('too much for the day sinks an item without taking it off the list', () => {
@@ -51,10 +79,10 @@ test('hesitation outranks enthusiasm when both have something to say', () => {
 test('what has shared a plate before comes up, and says with what', () => {
   const gnocchi = createItem('Gnocchi', 'kurz');
   const sauce = createItem('Tomatensoße', 'kurz');
-  createItem('Reis', 'kurz'); // never planned, so it leads an empty evening
+  createItem('Reis', 'kurz');
   for (const item of [gnocchi, sauce]) addToPlan('2026-07-10', item.id);
 
-  expect(names(MONDAY)[0]).toBe('Reis'); // nothing on the plate to point anywhere yet
+  expect(names(MONDAY).at(-1)).toBe('Reis'); // nothing on the plate to point anywhere yet
 
   addToPlan(MONDAY, gnocchi.id);
   expect(names(MONDAY)).toEqual(['Tomatensoße', 'Reis']);
@@ -130,11 +158,19 @@ test('a plate a whole item has finished is short of nothing', () => {
   expect(reasonFor(MONDAY, 'Broccoli')).toEqual({ axis: 'fresh' });
 });
 
-test('a proposal builds a plate out of the parts', () => {
-  part('Bratwurst', 'protein');
-  part('Broccoli', 'vegetable');
-  part('Kartoffeln', 'base');
+test('a proposal combines only what has been on one plate before', () => {
+  const sausage = part('Bratwurst', 'protein');
+  const broccoli = part('Broccoli', 'vegetable');
+  const potatoes = part('Kartoffeln', 'base');
 
+  // Base, vegetable and protein make a plate on paper, and nobody has cooked
+  // it: the proposal takes the best item and stops there.
+  expect(fillEvening(MONDAY)).toHaveLength(1);
+
+  db.exec('DELETE FROM plan');
+  for (const item of [sausage, broccoli, potatoes]) addToPlan('2026-07-10', item.id);
+
+  // Now the evening has been eaten, and the proposal follows it.
   expect(fillEvening(MONDAY).map((item) => item.name)).toEqual(['Bratwurst', 'Broccoli', 'Kartoffeln']);
 });
 
