@@ -1,6 +1,6 @@
 # The image the server pulls. Table Six has no build step, so this is
-# `bun test` and then the same Dockerfile the laptop builds, pushed to the
-# repository's own registry for the laptop (amd64) and the Pi (arm64).
+# `bun test` and then the same Dockerfile a laptop builds, pushed to the
+# repository's own registry for both architectures.
 name: image
 
 on:

@@ -1,11 +1,12 @@
 # Table Six
 
-A local tool that fills a weekday grid for a six-person household with reasoned
+A local tool that fills a weekday grid for a household with reasoned
 suggestions. **The app suggests, it does not decide** — every slot is freely
 overwritable, every warning is a hint, never a veto.
 
 **An evening is a set of items, not a dish.** Potatoes, broccoli and bratwurst
-is one meal for all six; whoever does not want an item leaves it out. The
+is one meal for everyone at the table; whoever does not want an item leaves
+it out. The
 component plate is the data model, not a feature.
 
 ## Rules
@@ -23,9 +24,9 @@ component plate is the data model, not a feature.
 On Sunday, within a few minutes, a weekly plan that
 
 - fits the time actually available on each individual weekday,
-- knows the preferences of all six and knows them better over time,
+- knows the preferences at the table and knows them better over time,
 - treats leftovers and cold supper as full-value slots,
-- assigns the two older daughters a predictable cooking duty.
+- makes the cooking duty predictable instead of a nightly negotiation.
 
 ## Value
 

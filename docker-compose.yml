@@ -1,5 +1,5 @@
-# Table Six on the Pi, at /srv/table6 — this file and data/, nothing else. The
-# image is built by GitHub Actions on every push to main; the Pi never sees the
+# Table Six on the server — this file and data/, nothing else. The image is
+# built by GitHub Actions on every push to main; the server never sees the
 # source and never builds, it pulls:
 #   docker compose pull && docker compose up -d
 services:
@@ -14,11 +14,11 @@ services:
       TZ: Europe/Berlin
       # `de` or `en` — the interface is served in one language, no switch.
       TABLE_SIX_LANG: de
-    # 9000 on the Pi, 4173 inside — the container keeps the port the app uses
-    # in development, the Pi decides what the kitchen dials.
+    # 9000 outside, 4173 inside — the container keeps the port the app uses in
+    # development, the host decides what is dialled.
     ports:
       - '9000:4173'
-    # The family's database. Create it as uid 1000, the image's `bun` user:
-    #   sudo mkdir -p /srv/table6/data && sudo chown 1000:1000 /srv/table6/data
+    # The database. Create it as uid 1000, the image's `bun` user:
+    #   sudo mkdir -p data && sudo chown 1000:1000 data
     volumes:
       - ./data:/data

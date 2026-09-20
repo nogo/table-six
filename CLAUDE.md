@@ -1,8 +1,9 @@
 # Table Six
 
-Weekly meal planning for a six-person household, running locally. An evening is
+Weekly meal planning for a household, running locally. An evening is
 a **set of items**, not a dish — potatoes, broccoli and bratwurst is one meal
-for all six, and whoever does not want an item leaves it out. The app
+for everyone at the table, and whoever does not want an item leaves it out.
+The app
 suggests, it never decides: every slot is overwritable, every warning is a hint.
 
 Outcome, value and constraints are in [`docs/project.md`](docs/project.md), the
@@ -57,8 +58,8 @@ Two phones and a laptop in one kitchen see the same week without a reload.
 - **SQLite is the truth. The socket only says what changed.** Every mutation
   goes through the HTTP API; the server then broadcasts the affected scope
   (`week:2026-08-17`, `items`) to the other clients, which refetch it.
-- **No diffs, no operations, no CRDT, no offline merge.** Last write wins. Six
-  people in one household do not need more, and anything more is maintenance.
+- **No diffs, no operations, no CRDT, no offline merge.** Last write wins. One
+  household does not need more, and anything more is maintenance.
 - **The socket is an accelerator.** If it never connects or drops, everything
   still works and resyncs on reconnect and on focus. Nothing may be reachable
   only through the socket.
