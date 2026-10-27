@@ -35,7 +35,7 @@ class WeekBoard extends AurilElement {
           ${day.tooMuch.length > 0 && html`<span class="mark warn">⚠︎</span>`}
         </span>
         <span class="plate ${day.items.length ? '' : 'empty'}">
-          ${day.items.length ? day.items.map((item) => item.name).join(' · ') : '–'}
+          ${day.items.length ? day.items.map((/** @type {any} */ item) => item.name).join(' · ') : '–'}
         </span>
       </button>`;
   }
@@ -84,7 +84,7 @@ class WeekBoard extends AurilElement {
     return html`
       ${this.#head(week)}
       ${offline && html`<p class="column wide hint">${t('board.offline')}</p>`}
-      <main class="column wide">${week.days.map((day) => this.#row(day))}</main>
+      <main class="column wide">${week.days.map((/** @type {any} */ day) => this.#row(day))}</main>
       ${this.#weeks()}`;
   }
 }

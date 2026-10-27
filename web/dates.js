@@ -34,9 +34,13 @@ export const WEEKDAYS = [
 /** @param {string} date @returns {string} the day of the month, "19" */
 export const dayOfMonth = (date) => String(Number(date.slice(8, 10)));
 
+/** @param {string} date */
 const month = (date) => String(Number(date.slice(5, 7)));
 
-/** "17.–23.8." within a month, "31.8.–6.9." across one. */
+/**
+ * "17.–23.8." within a month, "31.8.–6.9." across one.
+ * @param {string} start @param {string} end
+ */
 export function range(start, end) {
   const from = month(start) === month(end)
     ? `${dayOfMonth(start)}.`

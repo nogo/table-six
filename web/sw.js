@@ -6,6 +6,10 @@
 // registered this worker (`/sw.js?v=…`, the commit the image was built from),
 // so within a version the files cannot change and the cache can be trusted
 // blindly; a new version is a new cache, and the old one is deleted whole.
+
+/** `self` is typed as a plain worker; this is the service worker it really is. */
+const worker = /** @type {ServiceWorkerGlobalScope} */ (/** @type {unknown} */ (self));
+
 const VERSION = new URL(location.href).searchParams.get('v') || 'dev';
 const CACHE = `table-six-${VERSION}`;
 
@@ -34,23 +38,23 @@ const SHELL = [
   '/icon.svg',
 ];
 
-self.addEventListener('install', (event) => {
+worker.addEventListener('install', (event) => {
   // `reload` puts the browser's own HTTP cache out of the way. The files have
   // no hash in their names, so without it a new version would happily install
   // the previous version's `app.js` and nothing would have changed.
   const fresh = SHELL.map((path) => new Request(path, { cache: 'reload' }));
-  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(fresh)).then(() => self.skipWaiting()));
+  event.waitUntil(caches.open(CACHE).then((cache) => cache.addAll(fresh)).then(() => worker.skipWaiting()));
 });
 
-self.addEventListener('activate', (event) => {
+worker.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys()
       .then((keys) => Promise.all(keys.filter((key) => key !== CACHE).map((key) => caches.delete(key))))
-      .then(() => self.clients.claim()),
+      .then(() => worker.clients.claim()),
   );
 });
 
-self.addEventListener('fetch', (event) => {
+worker.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url);
   const shellOnly = event.request.method === 'GET' && url.origin === location.origin && !url.pathname.startsWith('/api/');
   if (!shellOnly) return; // the API and the socket never go through the cache

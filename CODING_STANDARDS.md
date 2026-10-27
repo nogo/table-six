@@ -12,8 +12,10 @@ silent, they apply. The stack, sync model and repo layout are in
 `bun test` — must pass before a change is done. The whole suite runs in well
 under a second; it is never filtered.
 
-Gap: the check has no type check and no lint. `bunx -p typescript@5.9.3 tsc --noEmit -p .`
-passes today but is not a repo command, and `web/` is not type-checked at all.
+Gap: the check has no type check and no lint. Type checks are three manual
+commands, not part of `bun test`:
+`bunx -p typescript@5.9.3 tsc --noEmit -p .` (server and tests),
+`-p web/jsconfig.json` (screens) and `-p web/jsconfig.sw.json` (service worker).
 
 ## Measure
 

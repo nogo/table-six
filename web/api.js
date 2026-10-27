@@ -12,7 +12,7 @@ async function request(path, options) {
   return response.status === 204 ? null : response.json();
 }
 
-/** @param {string} path @param {unknown} body */
+/** @param {string} method @param {string} path @param {unknown} [body] */
 const send = (method, path, body) =>
   request(path, { method, body: body === undefined ? undefined : JSON.stringify(body) });
 
