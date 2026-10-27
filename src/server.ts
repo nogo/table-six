@@ -88,5 +88,5 @@ export function serve(port: number) {
 
 if (import.meta.main) {
   const server = serve(Number(process.env.PORT ?? 4173));
-  console.log(`Table Six on http://localhost:${server.port}`);
+  console.log(`Table Six on http://0.0.0.0:${server.port}`);
 }
