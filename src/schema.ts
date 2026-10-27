@@ -61,6 +61,19 @@ const MIGRATIONS: ((db: Database) => void)[] = [
   (db) => {
     if (hasColumn(db, 'items', 'vegetarian')) db.exec('ALTER TABLE items DROP COLUMN vegetarian');
   },
+  // 3 — every week proposal, one row per evening it filled, kept as it was
+  // proposed: corrections, renames and later proposals never rewrite it.
+  (db) => {
+    db.exec(`
+      CREATE TABLE drafts (
+        id          INTEGER PRIMARY KEY,
+        date        TEXT NOT NULL,
+        proposed_on TEXT NOT NULL,
+        items       TEXT NOT NULL
+      );
+      CREATE INDEX drafts_date ON drafts(date);
+    `);
+  },
 ];
 
 /** Bring a database up to the last step. Running it again does nothing. */

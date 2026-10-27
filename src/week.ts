@@ -2,7 +2,7 @@
 // hint the board draws — the effort warning. It is a hint, never a veto:
 // nothing here refuses to store anything.
 import { asksTooMuch, effortGrid, planBetween, type Effort, type Item } from './db.ts';
-import { isoWeek, weekDays, weekday } from './dates.ts';
+import { isoWeek, today, weekDays, weekday } from './dates.ts';
 
 export type Evening = {
   date: string;
@@ -14,9 +14,16 @@ export type Evening = {
   tooMuch: string[];
 };
 
-export type Week = { start: string; end: string; week: number; days: Evening[] };
+export type Week = {
+  start: string;
+  end: string;
+  week: number;
+  days: Evening[];
+  /** Some evening from `current` on is still empty — what a week proposal fills. */
+  canPropose: boolean;
+};
 
-export function buildWeek(start: string): Week {
+export function buildWeek(start: string, current = today()): Week {
   const dates = weekDays(start);
   const grid = effortGrid();
   const plan = planBetween(dates[0]!, dates[6]!);
@@ -25,6 +32,7 @@ export function buildWeek(start: string): Week {
     start: dates[0]!,
     end: dates[6]!,
     week: isoWeek(start),
+    canPropose: dates.some((date) => date >= current && !plan.has(date)),
     days: dates.map((date) => {
       const items = plan.get(date) ?? [];
       const effort = grid[weekday(date)]!;

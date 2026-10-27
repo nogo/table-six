@@ -10,7 +10,7 @@ const names = (date: string) => suggest(date).map(({ item }) => item.name);
 const reasonFor = (date: string, name: string) => suggest(date).find(({ item }) => item.name === name)?.reason;
 
 beforeEach(() => {
-  db.exec('DELETE FROM plan; DELETE FROM items; DELETE FROM weekday_effort');
+  db.exec('DELETE FROM drafts; DELETE FROM plan; DELETE FROM items; DELETE FROM weekday_effort');
 });
 
 test('what is due comes first, what was on the table yesterday last', () => {

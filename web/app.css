@@ -73,6 +73,11 @@ button { cursor: pointer; text-align: left; }
 /* The title takes what is left and gives it back first: on a narrow phone the
    controls keep their 48 px before the label keeps its words. */
 .head h1 { font-size: 15px; margin: 0; flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+/* The board's title gives way in parts: the date range first, the week number
+   never — `KW 44` is what says which week the seven rows are. */
+.week-title { display: flex; gap: 8px; }
+.week-title > :first-child { flex: none; }
+.week-title .range { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 /* The three week controls are one group and take the whole line: an arrow at
    each edge, `●` in the middle, so the line itself reads as the run of weeks. */
 .weeks { justify-content: space-between; }
@@ -92,6 +97,9 @@ button { cursor: pointer; text-align: left; }
   letter-spacing: .04em;
 }
 .action:active { background: var(--surface); color: var(--bone); }
+/* The week proposal is a glyph: its target is set, not its label's width, and
+   it takes the size of the other glyph controls, the week arrows. */
+.propose-week { min-width: 48px; justify-content: center; font-size: 20px; font-variant-emoji: text; }
 /* A filter that is not `alle` hides rows, so it says so in the accent. */
 .action.on { color: var(--brass); }
 
@@ -171,6 +179,8 @@ main.column { padding-bottom: env(safe-area-inset-bottom); }
   text-overflow: ellipsis;
 }
 .plate.empty { color: var(--soft); }
+
+#write-status:empty { display: none; }
 
 /* ── day focus ──────────────────────────────────────────────────────────── */
 

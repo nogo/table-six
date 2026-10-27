@@ -149,6 +149,34 @@ export function planHistory(): Map<number, string[]> {
 export const addToPlan = (date: string, itemId: number): void => void addToPlanStmt.run(date, itemId, date);
 export const removeFromPlan = (date: string, itemId: number): void => void removeFromPlanStmt.run(date, itemId);
 
+export type DraftItem = Pick<Item, 'id' | 'name'>;
+export type Draft = { proposedOn: string; items: DraftItem[] };
+
+const saveDraftStmt = db.query<null, [string, string, string]>(
+  'INSERT INTO drafts (date, proposed_on, items) VALUES (?, ?, ?)',
+);
+const draftsBetweenStmt = db.query<{ date: string; proposed_on: string; items: string }, [string, string]>(
+  'SELECT date, proposed_on, items FROM drafts WHERE date BETWEEN ? AND ? ORDER BY date, id',
+);
+
+/** Snapshot names as well as ids: editing the inventory must not rewrite the proposal. */
+export const saveDraft = (date: string, proposedOn: string, items: Item[]): void =>
+  void saveDraftStmt.run(date, proposedOn, JSON.stringify(items.map(({ id, name }) => ({ id, name }))));
+
+/**
+ * date → every proposal made for that evening, first first. Nothing on screen
+ * reads this; it is how a review asks what was proposed (`bun repl`).
+ */
+export function draftsBetween(from: string, to: string): Map<string, Draft[]> {
+  const drafts = new Map<string, Draft[]>();
+  for (const row of draftsBetweenStmt.all(from, to)) {
+    const list = drafts.get(row.date) ?? [];
+    list.push({ proposedOn: row.proposed_on, items: JSON.parse(row.items) as DraftItem[] });
+    drafts.set(row.date, list);
+  }
+  return drafts;
+}
+
 // ── pairs ────────────────────────────────────────────────────────────────────
 
 const sharedEveningsStmt = db.query<{ id: number; partner_id: number; date: string }, [string]>(

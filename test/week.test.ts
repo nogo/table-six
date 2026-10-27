@@ -6,7 +6,7 @@ const MONDAY = '2026-08-17';
 const WEDNESDAY = '2026-08-19';
 
 beforeEach(() => {
-  db.exec('DELETE FROM plan; DELETE FROM items; DELETE FROM weekday_effort');
+  db.exec('DELETE FROM drafts; DELETE FROM plan; DELETE FROM items; DELETE FROM weekday_effort');
 });
 
 test('an empty week is seven evenings with nothing on them', () => {
@@ -47,4 +47,14 @@ test('an evening blows a short day as soon as one item asks for more', () => {
 test('an empty evening is not a warning', () => {
   setWeekdayEffort(3, 'kurz');
   expect(buildWeek(MONDAY).days[2]!.tooMuch).toEqual([]);
+});
+
+test('a week can be proposed while an evening from today on is still empty', () => {
+  for (const date of ['2026-08-19', '2026-08-20', '2026-08-21', '2026-08-22']) {
+    addToPlan(date, createItem(`Plate ${date}`, 'kurz').id);
+  }
+  expect(buildWeek(MONDAY, WEDNESDAY).canPropose).toBe(true); // Sunday is empty
+  addToPlan('2026-08-23', createItem('Sunday', 'kurz').id);
+  // Monday and Tuesday are empty, but they are behind us.
+  expect(buildWeek(MONDAY, WEDNESDAY).canPropose).toBe(false);
 });

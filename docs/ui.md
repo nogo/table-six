@@ -58,6 +58,12 @@ not a board, and the reason this view exists is gone. Everything follows:
   words lives in the day focus.
 - If seven rows ever stop fitting, the effort level leaves the row first, then
   the date.
+- **`✦` fills the empty evenings from today on**, never a past or
+  planned one. It sits in the app bar while such an evening is left. It plans
+  the week as a whole, which one evening at a time cannot: only whole plates
+  the family has eaten, no plate twice in a week, and an item already in the
+  week counts against a plate. Every proposal is kept as it was made, so it
+  can be held against what was really eaten — in the data, not on screen.
 
 ## Day focus (editing)
 
@@ -178,10 +184,12 @@ Colour is scarce, so symbols carry every state that isn't "today" or "careful".
 | `⚠` | blows the effort level — a hint, not a veto |
 | `–` | empty, and that's fine |
 | `●` | this week — between `‹` and `›`, and where they lead back to |
+| `✦` | propose the week's empty evenings |
 
-The three week controls are the one place a glyph stands without a word: they
-are one group, they are the only navigation on that line, and three labels
-would take the room the week itself needs. Everywhere else the word stays.
+The three week controls and `✦` are the only places a glyph stands without a
+word. The week controls are one group and the only navigation on their line;
+`✦` shares the app bar with `KW 44` and `Bestand`, and a word there would cost
+the week number on a narrow phone. Everywhere else the word stays.
 
 ## Touch
 
@@ -205,10 +213,6 @@ would take the room the week itself needs. Everywhere else the word stays.
 - **No notes, no shopping.** They stay on the magnet board.
 - **No drag & drop.** It presupposes a matrix of recipe cards; here you would
   drag items between days that are not visible at the same time.
-- **No automatic filling of the week.** One evening at a time, from the day
-  focus. Seven at once waits until the ranking has earned it: a weak evening
-  costs one ✕, a weak week costs seven and teaches the family to stop pressing
-  the button. Its screen already exists — the week board.
 
 Role colours · a colour per weekday · cards with borders and rounding · icons
 where a word fits · animation · numbers in the suggestion · webfonts · a second

@@ -38,7 +38,7 @@ async function listen(): Promise<{ told: () => Promise<string[]> }> {
 }
 
 beforeEach(() => {
-  db.exec('DELETE FROM plan; DELETE FROM items; DELETE FROM weekday_effort');
+  db.exec('DELETE FROM drafts; DELETE FROM plan; DELETE FROM items; DELETE FROM weekday_effort');
 });
 
 test('every write that went through tells the other phones, and only that', async () => {

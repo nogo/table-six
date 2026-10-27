@@ -17,6 +17,7 @@ const STRINGS = {
 
     'board.week': 'KW {week}',
     'board.today': 'heute',
+    'board.proposeLabel': 'Woche vorschlagen',
     'board.offline': 'offline — die Woche kann veraltet sein',
     'board.unreachable': 'Keine Verbindung. Sobald das Netz da ist, ist die Woche da.',
 
@@ -94,6 +95,7 @@ const STRINGS = {
 
     'board.week': 'Week {week}',
     'board.today': 'today',
+    'board.proposeLabel': 'Propose week',
     'board.offline': 'offline — this week may be out of date',
     'board.unreachable': 'No connection. The week is here as soon as the network is.',
 

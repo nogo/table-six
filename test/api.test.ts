@@ -17,7 +17,7 @@ const item = async (name: string, effort = 'normal') =>
   (await (await send('POST', '/api/items', { name, effort })).json()) as { id: number; name: string };
 
 beforeEach(() => {
-  db.exec('DELETE FROM plan; DELETE FROM items; DELETE FROM weekday_effort');
+  db.exec('DELETE FROM drafts; DELETE FROM plan; DELETE FROM items; DELETE FROM weekday_effort');
 });
 
 test('a name is enough to create an item', async () => {
@@ -131,4 +131,19 @@ test('the shell and the API name the same deployment', async () => {
   const shell = await (await fetch(url('/'))).text();
   const { version } = await (await fetch(url('/api/version'))).json();
   expect(shell).toContain(`data-version="${version}"`);
+});
+
+test('a week proposal validates its date and plans what it proposed', async () => {
+  const meal = await item('Test meal', 'kurz');
+  await send('PUT', `/api/plan/2020-01-01/${meal.id}`);
+  expect((await send('POST', '/api/week/nonsense/propose')).status).toBe(400);
+  // Far future keeps the endpoint test independent of the machine's current date.
+  const response = await send('POST', '/api/week/2099-11-04/propose');
+  expect(response.status).toBe(200);
+  expect(await response.json()).toEqual({ filled: 1, remaining: 6 });
+
+  const week = await (await fetch(url('/api/week?start=2099-11-04'))).json();
+  const proposed = week.days.filter((day: { items: unknown[] }) => day.items.length > 0);
+  expect(proposed.map((day: { items: { id: number }[] }) => day.items.map((i) => i.id))).toEqual([[meal.id]]);
+  expect(week.canPropose).toBe(true); // six evenings are still empty
 });

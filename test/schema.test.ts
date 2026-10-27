@@ -33,7 +33,7 @@ test('an empty database comes out with the whole schema', () => {
   expect(columns(db, 'items')).not.toContain('vegetarian');
   expect(columns(db, 'plan')).toEqual(['date', 'item_id', 'position']);
   expect(columns(db, 'weekday_effort')).toEqual(['weekday', 'effort']);
-  expect(version(db)).toBe(2);
+  expect(version(db)).toBe(3);
 });
 
 test('a database from before the ledger gets the missing columns and keeps its items', () => {
@@ -44,7 +44,7 @@ test('a database from before the ledger gets the missing columns and keeps its i
   expect(columns(db, 'items')).toContain('retired');
   expect(columns(db, 'items')).not.toContain('vegetarian');
   expect(db.query<{ n: number }, []>('SELECT count(*) AS n FROM items').get()!.n).toBe(2);
-  expect(version(db)).toBe(2);
+  expect(version(db)).toBe(3);
 });
 
 test('migrating a second time changes nothing', () => {
@@ -56,7 +56,7 @@ test('migrating a second time changes nothing', () => {
 
   expect(db.query<{ component: string | null }, [string]>('SELECT component FROM items WHERE name = ?').get('Kartoffeln'))
     .toEqual({ component: 'base' });
-  expect(version(db)).toBe(2);
+  expect(version(db)).toBe(3);
 });
 
 test('a step that throws leaves the database at the version it had', () => {
@@ -66,11 +66,22 @@ test('a step that throws leaves the database at the version it had', () => {
   expect(() =>
     db.transaction(() => {
       db.exec('ALTER TABLE items ADD COLUMN nonsense TEXT');
-      db.exec('PRAGMA user_version = 3');
+      db.exec('PRAGMA user_version = 4');
       throw new Error('half a step');
     })(),
   ).toThrow('half a step');
 
   expect(columns(db, 'items')).not.toContain('nonsense');
-  expect(version(db)).toBe(2);
+  expect(version(db)).toBe(3);
+});
+
+test('the draft migration keeps a version two plan intact', () => {
+  const db = beforeTheLedger();
+  migrate(db);
+  db.exec("DROP TABLE drafts; PRAGMA user_version = 2; INSERT INTO plan VALUES ('2026-10-26', 1, 1)");
+  migrate(db);
+  expect(columns(db, 'drafts')).toEqual(['id', 'date', 'proposed_on', 'items']);
+  expect(db.query('SELECT * FROM plan').all()).toEqual([{ date: '2026-10-26', item_id: 1, position: 1 }]);
+  expect(version(db)).toBe(3);
+  db.close();
 });

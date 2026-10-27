@@ -21,6 +21,7 @@ import { isIsoDate, today, weekStart } from './dates.ts';
 import { fillEvening, suggest } from './suggest.ts';
 import { changed } from './sync.ts';
 import { buildWeek } from './week.ts';
+import { proposeWeek } from './propose.ts';
 
 const bad = (message: string) => Response.json({ error: message }, { status: 400 });
 const missing = () => Response.json({ error: 'not found' }, { status: 404 });
@@ -73,6 +74,15 @@ const asId = (value: string | undefined): number | null => {
 };
 
 export const routes = {
+  '/api/week/:date/propose': {
+    POST: (request: Request & { params: { date: string } }) => {
+      const { date } = request.params;
+      if (!isIsoDate(date)) return bad('date must be YYYY-MM-DD');
+      const result = proposeWeek(date);
+      if (result.filled > 0) changed();
+      return Response.json(result);
+    },
+  },
   // One week, Monday to Sunday. `start` is any day inside it.
   '/api/week': (request: Request) => {
     const start = new URL(request.url).searchParams.get('start') ?? today();

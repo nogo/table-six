@@ -44,6 +44,9 @@ export const addToPlan = (date, itemId) => send('PUT', `/api/plan/${date}/${item
  *  @param {string} date */
 export const fillDay = (date) => send('POST', `/api/plan/${date}/fill`);
 
+/** @param {string} date Any day in the displayed week. */
+export const proposeWeek = (date) => send('POST', `/api/week/${date}/propose`);
+
 /** @param {string} date @param {number} itemId */
 export const removeFromPlan = (date, itemId) => send('DELETE', `/api/plan/${date}/${itemId}`);
 
