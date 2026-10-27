@@ -51,6 +51,15 @@ test('a patch touches only the fields it names', async () => {
   expect(patched).toMatchObject({ name: 'Nudeln', effort: 'entspannt' });
 });
 
+test('a part is one of the five, or none at all', async () => {
+  expect((await send('POST', '/api/items', { name: 'Eis', component: 'dessert' })).status).toBe(400);
+
+  const reis = await item('Reis');
+  expect(await (await send('PATCH', `/api/items/${reis.id}`, { component: 'base' })).json()).toMatchObject({ component: 'base' });
+  expect((await send('PATCH', `/api/items/${reis.id}`, { component: 'dessert' })).status).toBe(400);
+  expect(await (await send('PATCH', `/api/items/${reis.id}`, { component: null })).json()).toMatchObject({ component: null });
+});
+
 test('an evening is filled and emptied one tap at a time', async () => {
   const nudeln = await item('Nudeln', 'kurz');
   expect((await send('PUT', `/api/plan/2026-08-19/${nudeln.id}`)).status).toBe(204);

@@ -15,6 +15,7 @@ import {
   type Component,
   type Effort,
   type Item,
+  type ItemFields,
 } from './db.ts';
 import { isIsoDate, today, weekStart } from './dates.ts';
 import { fillEvening, suggest } from './suggest.ts';
@@ -26,6 +27,7 @@ const missing = () => Response.json({ error: 'not found' }, { status: 404 });
 const done = () => new Response(null, { status: 204 });
 
 const isEffort = (value: unknown): value is Effort => EFFORT_ORDER.includes(value as Effort);
+const EFFORT_REFUSED = `effort must be one of ${EFFORT_ORDER.join(', ')}`;
 
 /** An item nobody has sorted yet is `null`, and that is a legitimate value. */
 const isComponent = (value: unknown): value is Component | null =>
@@ -45,6 +47,25 @@ const cleanName = (value: unknown): string | null => {
   const name = typeof value === 'string' ? value.trim().replace(/\s+/g, ' ') : '';
   return name.length > 0 && name.length <= 60 ? name : null;
 };
+
+/** Names are one item whatever their case: "reis" finds "Reis". */
+const named = (name: string): Item | undefined =>
+  listItems().find((item) => item.name.toLowerCase() === name.toLowerCase());
+
+/**
+ * The item a request asks for: every field the body names, checked, and
+ * `base` for the ones it leaves out. A string is what to refuse it with.
+ */
+function readItem(fields: Record<string, unknown>, base: ItemFields): ItemFields | string {
+  const name = fields.name === undefined ? base.name : cleanName(fields.name);
+  if (!name) return 'name must be 1–60 characters';
+  const effort = fields.effort === undefined ? base.effort : fields.effort;
+  if (!isEffort(effort)) return EFFORT_REFUSED;
+  const component = fields.component === undefined ? base.component : fields.component;
+  if (!isComponent(component)) return `component must be null or one of ${COMPONENTS.join(', ')}`;
+  const retired = fields.retired === undefined ? base.retired : fields.retired === true;
+  return { name, effort, component, retired };
+}
 
 const asId = (value: string | undefined): number | null => {
   const id = Number(value);
@@ -76,16 +97,12 @@ export const routes = {
     // exists hands back the item it names instead of refusing — the search
     // field creates and finds through the same gesture.
     POST: async (request: Request) => {
-      const fields = await body(request);
-      const name = cleanName(fields.name);
-      if (!name) return bad('name must be 1–60 characters');
-      const effort = fields.effort === undefined ? 'normal' : fields.effort;
-      if (!isEffort(effort)) return bad(`effort must be one of ${EFFORT_ORDER.join(', ')}`);
-      const component = fields.component === undefined ? null : fields.component;
-      if (!isComponent(component)) return bad(`component must be null or one of ${COMPONENTS.join(', ')}`);
-      const existing = listItems().find((item) => item.name.toLowerCase() === name.toLowerCase());
+      // No name in the base: a new item needs one from the body.
+      const fields = readItem(await body(request), { name: '', effort: 'normal', component: null, retired: false });
+      if (typeof fields === 'string') return bad(fields);
+      const existing = named(fields.name);
       if (existing) return Response.json(existing);
-      const item = createItem(name, effort, component);
+      const item = createItem(fields.name, fields.effort, fields.component);
       changed();
       return Response.json(item, { status: 201 });
     },
@@ -97,21 +114,13 @@ export const routes = {
       const item = id === null ? null : getItem(id);
       if (!item) return missing();
 
-      const fields = await body(request);
-      const name = fields.name === undefined ? item.name : cleanName(fields.name);
-      if (!name) return bad('name must be 1–60 characters');
-      const effort = fields.effort === undefined ? item.effort : fields.effort;
-      if (!isEffort(effort)) return bad(`effort must be one of ${EFFORT_ORDER.join(', ')}`);
-      const component = fields.component === undefined ? item.component : fields.component;
-      if (!isComponent(component)) return bad(`component must be null or one of ${COMPONENTS.join(', ')}`);
-      const retired = fields.retired === undefined ? item.retired : fields.retired === true;
+      const fields = readItem(await body(request), item);
+      if (typeof fields === 'string') return bad(fields);
 
-      const clash = listItems().find(
-        (other) => other.id !== item.id && other.name.toLowerCase() === name.toLowerCase(),
-      );
-      if (clash) return Response.json({ error: 'name exists', item: clash }, { status: 409 });
+      const clash = named(fields.name);
+      if (clash && clash.id !== item.id) return Response.json({ error: 'name exists', item: clash }, { status: 409 });
 
-      const updated = updateItem(item.id, { name, effort, component, retired }) as Item;
+      const updated = updateItem(item.id, fields) as Item;
       changed();
       return Response.json(updated);
     },
@@ -174,7 +183,7 @@ export const routes = {
       const weekday = Number(request.params.weekday);
       const { effort } = await body(request);
       if (!Number.isInteger(weekday) || weekday < 1 || weekday > 7) return bad('weekday must be 1–7');
-      if (!isEffort(effort)) return bad(`effort must be one of ${EFFORT_ORDER.join(', ')}`);
+      if (!isEffort(effort)) return bad(EFFORT_REFUSED);
       setWeekdayEffort(weekday, effort);
       changed();
       return done();
