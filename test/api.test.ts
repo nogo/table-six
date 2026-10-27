@@ -1,8 +1,8 @@
 import { afterAll, beforeEach, expect, test } from 'bun:test';
-import { routes } from '../src/api.ts';
 import { db } from '../src/db.ts';
+import { serve } from '../src/server.ts';
 
-const server = Bun.serve({ port: 0, routes, fetch: () => new Response(null, { status: 404 }) });
+const server = serve(0);
 const url = (path: string) => `http://localhost:${server.port}${path}`;
 afterAll(() => server.stop(true));
 
@@ -108,4 +108,18 @@ test('the inventory is ordered by the evening it was last planned for', async ()
 
   const items = (await (await fetch(url('/api/items'))).json()) as { name: string }[];
   expect(items.map((i) => i.name)).toEqual(['Zwiebelkuchen', 'Auflauf']);
+});
+
+test('every screen the client router owns is the shell, anything else is a 404', async () => {
+  for (const path of ['/', '/day/2026-08-19', '/inventory']) {
+    expect(await (await fetch(url(path))).text()).toContain('<app-screen');
+  }
+  expect((await fetch(url('/nonsense'))).status).toBe(404);
+});
+
+test('the shell and the API name the same deployment', async () => {
+  // When they disagree, the phone reloads every time it is picked up.
+  const shell = await (await fetch(url('/'))).text();
+  const { version } = await (await fetch(url('/api/version'))).json();
+  expect(shell).toContain(`data-version="${version}"`);
 });

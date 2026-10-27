@@ -1,10 +1,11 @@
 // The whole server: JSON API, static files and the websocket in one place.
+// `bun src/server.ts` listens on PORT; tests call `serve(0)` and get the same
+// route table on a free port.
 import { file } from 'bun';
 import { routes } from './api.ts';
 import { onPublish } from './sync.ts';
 
 const WEB = new URL('../web/', import.meta.url).pathname;
-const PORT = Number(process.env.PORT ?? 4173);
 const TOPIC = 'table-six';
 
 /**
@@ -18,7 +19,9 @@ const LANGUAGE = process.env.TABLE_SIX_LANG === 'en' ? 'en' : 'de';
  * What this deployment is, for the cache on the phone: the commit the image
  * was built from, baked in by the Dockerfile. Outside a container there is no
  * commit, and the start time is the honest answer — every `--watch` restart is
- * a new version, which is what someone editing wants.
+ * a new version, which is what someone editing wants. The shell and
+ * `/api/version` both read this one value; if they ever disagree, the phone
+ * reloads every time it is picked up.
  */
 const VERSION = process.env.TABLE_SIX_VERSION || String(Date.now());
 
@@ -45,34 +48,45 @@ const shell = (request: Request) =>
     ? new Response(null, { status: 304, headers: HEADERS })
     : new Response(SHELL, { headers: HEADERS });
 
-const server = Bun.serve({
-  port: PORT,
-  idleTimeout: 60,
+export function serve(port: number) {
+  const server = Bun.serve({
+    port,
+    idleTimeout: 60,
 
-  routes: {
-    ...routes,
+    routes: {
+      ...routes,
 
-    '/': shell,
-    '/day/:date': shell,
-    '/inventory': shell,
+      // What this deployment is. Behind `/api/`, which the service worker
+      // never caches, so a phone that has been asleep for a week can ask the
+      // server the one question the cache cannot answer honestly.
+      '/api/version': () => Response.json({ version: VERSION }),
 
-    '/ws': (request, server) =>
-      server.upgrade(request) ? undefined : new Response('upgrade failed', { status: 400 }),
+      '/': shell,
+      '/day/:date': shell,
+      '/inventory': shell,
 
-    // web/ as it lies on disk, `/` included: Bun sends the file and the
-    // ETag, Last-Modified and 304 with it, so a reload in the kitchen costs
-    // one request per file and no bytes. Anything else is a 404.
-    '/*': { dir: WEB },
-  },
+      '/ws': (request, server) =>
+        server.upgrade(request) ? undefined : new Response('upgrade failed', { status: 400 }),
 
-  websocket: {
-    // Every phone in the kitchen listens to the same topic. Clients never
-    // send: the socket carries what changed, nothing else.
-    open: (ws) => void ws.subscribe(TOPIC),
-    message: () => {},
-  },
-});
+      // web/ as it lies on disk, `/` included: Bun sends the file and the
+      // ETag, Last-Modified and 304 with it, so a reload in the kitchen costs
+      // one request per file and no bytes. Anything else is a 404.
+      '/*': { dir: WEB },
+    },
 
-onPublish((scope) => server.publish(TOPIC, scope));
+    websocket: {
+      // Every phone in the kitchen listens to the same topic. Clients never
+      // send: the socket carries what changed, nothing else.
+      open: (ws) => void ws.subscribe(TOPIC),
+      message: () => {},
+    },
+  });
 
-console.log(`Table Six on http://localhost:${server.port}`);
+  onPublish((scope) => server.publish(TOPIC, scope));
+  return server;
+}
+
+if (import.meta.main) {
+  const server = serve(Number(process.env.PORT ?? 4173));
+  console.log(`Table Six on http://localhost:${server.port}`);
+}
