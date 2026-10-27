@@ -55,9 +55,10 @@ whether the runtime already has it — Bun ships more every release.
 
 Two phones and a laptop in one kitchen see the same week without a reload.
 
-- **SQLite is the truth. The socket only says what changed.** Every mutation
-  goes through the HTTP API; the server then broadcasts the affected scope
-  (`week:2026-08-17`, `items`) to the other clients, which refetch it.
+- **SQLite is the truth. The socket only says that something changed.** Every
+  mutation goes through the HTTP API; the server then broadcasts `changed`,
+  and every client refetches what it shows. No scopes: knowing which part a
+  write moved is knowledge that drifts, and the reload is three small requests.
 - **No diffs, no operations, no CRDT, no offline merge.** Last write wins. One
   household does not need more, and anything more is maintenance.
 - **The socket is an accelerator.** If it never connects or drops, everything

@@ -18,7 +18,7 @@ import {
 } from './db.ts';
 import { isIsoDate, today, weekStart } from './dates.ts';
 import { fillEvening, suggest } from './suggest.ts';
-import { publish } from './sync.ts';
+import { changed } from './sync.ts';
 import { buildWeek } from './week.ts';
 
 const bad = (message: string) => Response.json({ error: message }, { status: 400 });
@@ -86,7 +86,7 @@ export const routes = {
       const existing = listItems().find((item) => item.name.toLowerCase() === name.toLowerCase());
       if (existing) return Response.json(existing);
       const item = createItem(name, effort, component);
-      publish('items');
+      changed();
       return Response.json(item, { status: 201 });
     },
   },
@@ -112,7 +112,7 @@ export const routes = {
       if (clash) return Response.json({ error: 'name exists', item: clash }, { status: 409 });
 
       const updated = updateItem(item.id, { name, effort, component, retired }) as Item;
-      publish('items'); // a name travels onto every board it is planned on
+      changed();
       return Response.json(updated);
     },
 
@@ -127,7 +127,7 @@ export const routes = {
         return Response.json({ error: 'item has been planned; retire it instead' }, { status: 409 });
       }
       deleteItem(id);
-      publish('items');
+      changed();
       return done();
     },
   },
@@ -140,7 +140,7 @@ export const routes = {
       if (!isIsoDate(date)) return bad('date must be YYYY-MM-DD');
       if (id === null || !getItem(id)) return missing();
       addToPlan(date, id);
-      publish(`week:${weekStart(date)}`);
+      changed();
       return done();
     },
 
@@ -149,7 +149,7 @@ export const routes = {
       const id = asId(itemId);
       if (!isIsoDate(date) || id === null) return bad('date must be YYYY-MM-DD');
       removeFromPlan(date, id);
-      publish(`week:${weekStart(date)}`);
+      changed();
       return done();
     },
   },
@@ -162,7 +162,7 @@ export const routes = {
       const { date } = request.params;
       if (!isIsoDate(date)) return bad('date must be YYYY-MM-DD');
       fillEvening(date);
-      publish(`week:${weekStart(date)}`);
+      changed();
       return done();
     },
   },
@@ -176,7 +176,7 @@ export const routes = {
       if (!Number.isInteger(weekday) || weekday < 1 || weekday > 7) return bad('weekday must be 1–7');
       if (!isEffort(effort)) return bad(`effort must be one of ${EFFORT_ORDER.join(', ')}`);
       setWeekdayEffort(weekday, effort);
-      publish('weeks'); // the level recurs, so every week on every screen moved
+      changed();
       return done();
     },
   },

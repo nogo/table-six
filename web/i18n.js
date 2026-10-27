@@ -32,6 +32,8 @@ const STRINGS = {
     'day.createAndAdd': '„{name}“ anlegen und hinzufügen',
     'day.remove': '{name} entfernen',
 
+    'write.unsaved': 'Nicht gespeichert. Angezeigt ist, was gespeichert ist.',
+
     'reason.retired': 'pausiert',
     'reason.effort': 'zu aufwendig für {effort}',
     'reason.alone': 'reicht allein',
@@ -106,6 +108,8 @@ const STRINGS = {
     'day.addItem': 'add {name}',
     'day.createAndAdd': 'create “{name}” and add it',
     'day.remove': 'remove {name}',
+
+    'write.unsaved': 'Not saved. What you see is what is stored.',
 
     'reason.retired': 'paused',
     'reason.effort': 'too much for a {effort} day',

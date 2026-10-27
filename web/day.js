@@ -2,7 +2,7 @@
 // immediately — nothing to confirm, nothing to save.
 import { AurilElement, html } from './auril/index.js';
 import { addToPlan, createItem, fillDay, removeFromPlan, setWeekdayEffort } from './api.js';
-import { loadItems, loadSuggestions, loadWeek, store } from './app.js';
+import { reload, store, write } from './app.js';
 import { EFFORT_ORDER, WEEKDAYS, dayOfMonth, weekday } from './dates.js';
 import { t } from './i18n.js';
 import { componentName } from './items.js';
@@ -52,15 +52,16 @@ class DayFocus extends AurilElement {
     this.watch((s) => s.week, () => this.update());
     this.watch((s) => s.items, () => this.update());
     this.watch((s) => s.suggestions, () => this.update());
+    this.watch((s) => s.unsaved, () => this.update());
 
-    this.delegate('click', '.add', (_, el) => this.#write(addToPlan(this.date, this.#id(el))));
-    this.delegate('click', '.fill', () => this.#write(fillDay(this.date)));
-    this.delegate('click', '.x', (_, el) => this.#write(removeFromPlan(this.date, this.#id(el))));
+    this.delegate('click', '.add', (_, el) => write(addToPlan(this.date, this.#id(el))));
+    this.delegate('click', '.fill', () => write(fillDay(this.date)));
+    this.delegate('click', '.x', (_, el) => write(removeFromPlan(this.date, this.#id(el))));
 
     // The level belongs to the weekday: tapping it moves every Wednesday.
     this.delegate('click', '.level', () => {
       const next = EFFORT_ORDER[(EFFORT_ORDER.indexOf(this.#day().effort) + 1) % EFFORT_ORDER.length];
-      this.#write(setWeekdayEffort(weekday(this.date), next));
+      write(setWeekdayEffort(weekday(this.date), next));
     });
 
     this.delegate('input', '.query', (_, el) => {
@@ -79,9 +80,7 @@ class DayFocus extends AurilElement {
     // list under the field would jump before the click lands.
     this.delegate('mousedown', '.go', (event) => event.preventDefault());
 
-    loadWeek();
-    loadItems();
-    loadSuggestions(this.date);
+    reload();
   }
 
   get date() {
@@ -95,12 +94,6 @@ class DayFocus extends AurilElement {
   /** @param {Element} el @returns {number} */
   #id(el) {
     return Number(el.closest('[data-id]')?.getAttribute('data-id'));
-  }
-
-  /** Every write is a request; the week and the inventory come back from the server. */
-  async #write(pending) {
-    await pending;
-    await Promise.all([loadWeek(), loadItems(), loadSuggestions(this.date)]);
   }
 
   /** The ranking for this date — nothing until the one for this date arrives. */
@@ -146,8 +139,10 @@ class DayFocus extends AurilElement {
     if (input) input.value = ''; // morph leaves the focused field alone — clear it here
     // A new item takes the level of the evening it was created for: nobody
     // wants a warning about the thing they just typed.
-    const item = action.item ?? await createItem(action.name, { effort: day.effort });
-    await this.#write(addToPlan(this.date, item.id));
+    await write((async () => {
+      const item = action.item ?? await createItem(action.name, { effort: day.effort });
+      await addToPlan(this.date, item.id);
+    })());
     input?.focus();
   }
 
@@ -193,6 +188,7 @@ class DayFocus extends AurilElement {
             evening: t(`evening.${day.effort}`),
             items: tooMuch.map((/** @type {any} */ i) => i.name).join(', '),
           })}</p>`}
+        ${store.state.unsaved && html`<p class="hint warn">${t('write.unsaved')}</p>`}
       </header>
 
       <section class="column wide plate-list">

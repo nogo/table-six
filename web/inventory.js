@@ -3,7 +3,7 @@
 // role and the level.
 import { AurilElement, html } from './auril/index.js';
 import { createItem, deleteItem, patchItem } from './api.js';
-import { loadItems, loadWeek, store } from './app.js';
+import { loadItems, store, write } from './app.js';
 import { EFFORT_ORDER } from './dates.js';
 import { t } from './i18n.js';
 import { COMPONENT_ORDER, componentName, effortName } from './items.js';
@@ -38,6 +38,7 @@ class ItemInventory extends AurilElement {
       this.#dropStaleIntents(items);
       this.update();
     });
+    this.watch((s) => s.unsaved, () => this.update());
 
     this.delegate('click', '.open', (_, el) => {
       const id = this.#id(el);
@@ -52,7 +53,7 @@ class ItemInventory extends AurilElement {
     this.delegate('click', '.cycle', (_, el) => {
       const item = this.#item(this.#id(el));
       if (item) {
-        this.#write(patchItem(item.id, { effort: EFFORT_ORDER[(EFFORT_ORDER.indexOf(item.effort) + 1) % EFFORT_ORDER.length] }));
+        write(patchItem(item.id, { effort: EFFORT_ORDER[(EFFORT_ORDER.indexOf(item.effort) + 1) % EFFORT_ORDER.length] }));
       }
     });
 
@@ -60,14 +61,14 @@ class ItemInventory extends AurilElement {
       const item = this.#item(this.#id(el));
       if (item) {
         const next = COMPONENT_ORDER[(COMPONENT_ORDER.indexOf(item.component) + 1) % COMPONENT_ORDER.length];
-        this.#write(patchItem(item.id, { component: next }));
+        write(patchItem(item.id, { component: next }));
       }
     });
 
     // Retiring is reversible, so it needs no second tap the way deleting does.
     this.delegate('click', '.retire, .resume', (_, el) => {
       const item = this.#item(this.#id(el));
-      if (item) this.#write(patchItem(item.id, { retired: !item.retired }));
+      if (item) write(patchItem(item.id, { retired: !item.retired }));
     });
 
     this.delegate('click', '.close', () => {
@@ -83,7 +84,7 @@ class ItemInventory extends AurilElement {
       }
       this.#confirming = null;
       this.#editing = null;
-      this.#write(deleteItem(id));
+      write(deleteItem(id));
     });
 
     // Enter saves the name, Esc closes the row — the keyboard is the
@@ -92,7 +93,7 @@ class ItemInventory extends AurilElement {
       const input = /** @type {HTMLInputElement} */ (el);
       const name = input.value.trim();
       const item = this.#item(this.#id(el));
-      if (item && name && name !== item.name) this.#write(patchItem(item.id, { name }));
+      if (item && name && name !== item.name) write(patchItem(item.id, { name }));
     });
     this.delegate('keydown', '.rename', (event) => {
       const key = /** @type {KeyboardEvent} */ (event).key;
@@ -152,19 +153,13 @@ class ItemInventory extends AurilElement {
     if (this.#editing !== null && !nameOf.has(this.#editing)) this.#editing = null;
   }
 
-  /** Names travel onto the board, so the week is refetched with the list. */
-  async #write(pending) {
-    await pending;
-    await Promise.all([loadItems(), loadWeek()]);
-  }
-
   async #create() {
     const name = this.#query.trim();
     if (!name) return;
     const input = /** @type {HTMLInputElement | null} */ (this.querySelector('.query'));
     this.#query = '';
     if (input) input.value = ''; // morph leaves the focused field alone
-    await this.#write(createItem(name));
+    await write(createItem(name));
     input?.focus();
   }
 
@@ -246,6 +241,7 @@ class ItemInventory extends AurilElement {
           <h1 class="caps">${t('inventory.title')} <span class="soft num">${store.state.items.length}</span></h1>
           <a class="action" href="/">${t('nav.week')}</a>
         </div>
+        ${store.state.unsaved && html`<p class="hint warn">${t('write.unsaved')}</p>`}
         <form class="head-line search-form">
           <label class="search">
             <span class="soft" aria-hidden="true">⌕</span>

@@ -3,7 +3,7 @@
 // route table on a free port.
 import { file } from 'bun';
 import { routes } from './api.ts';
-import { onPublish } from './sync.ts';
+import { onChange } from './sync.ts';
 
 const WEB = new URL('../web/', import.meta.url).pathname;
 const TOPIC = 'table-six';
@@ -76,13 +76,13 @@ export function serve(port: number) {
 
     websocket: {
       // Every phone in the kitchen listens to the same topic. Clients never
-      // send: the socket carries what changed, nothing else.
+      // send: the socket says that something changed, nothing else.
       open: (ws) => void ws.subscribe(TOPIC),
       message: () => {},
     },
   });
 
-  onPublish((scope) => server.publish(TOPIC, scope));
+  onChange(() => server.publish(TOPIC, 'changed'));
   return server;
 }
 

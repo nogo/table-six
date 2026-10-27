@@ -17,12 +17,14 @@ export const store = new Store({
   suggestions: /** @type {{ date: string, list: any[] }} */ ({ date: '', list: [] }),
   /** The last request did not arrive. Shown, never acted on. */
   offline: false,
+  /** The last write was refused or lost; the screen shows what is stored instead. */
+  unsaved: false,
 });
 AurilElement.store = store;
 
 /**
- * Refetch what changed. Every screen and the socket go through these two —
- * the server is the truth, the client only ever reloads a scope.
+ * The three reads. Server data enters the store only through them — the
+ * server is the truth, the client only ever reloads.
  * @param {string} [start] ISO Monday
  */
 export async function loadWeek(start = store.state.weekStart) {
@@ -57,14 +59,39 @@ export async function loadSuggestions(date) {
   }
 }
 
+/**
+ * Refetch everything a screen can show. There is no knowing which part a write
+ * moved — a household's week, inventory and one ranking are three small
+ * requests, so every change reloads all of them.
+ */
+export const reload = () =>
+  Promise.all([loadWeek(), loadItems(), loadSuggestions(store.state.route.params.date)]);
+
+/**
+ * Every write a screen makes: the request, then the truth from the server. A
+ * write that is refused or lost says so, and the reload puts what is stored
+ * back on screen — a field never keeps showing what did not save.
+ * @param {Promise<unknown>} pending
+ */
+export async function write(pending) {
+  try {
+    await pending;
+    store.set({ unsaved: false });
+  } catch {
+    store.set({ unsaved: true });
+  }
+  await reload();
+}
+
 export const router = new Router()
-  .route('/', () => store.set({ route: { name: 'board', params: {} } }))
+  .route('/', () => store.set({ route: { name: 'board', params: {} }, unsaved: false }))
   .route('/day/:date', (params) => store.set({
     route: { name: 'day', params },
     weekStart: weekStart(params.date ?? today()), // going back lands on the right week
+    unsaved: false,
   }))
-  .route('/inventory', () => store.set({ route: { name: 'inventory', params: {} } }))
-  .notFound(() => store.set({ route: { name: 'board', params: {} } }));
+  .route('/inventory', () => store.set({ route: { name: 'inventory', params: {} }, unsaved: false }))
+  .notFound(() => store.set({ route: { name: 'board', params: {} }, unsaved: false }));
 
 class AppScreen extends AurilElement {
   onConnect() {
