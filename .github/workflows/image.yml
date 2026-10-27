@@ -29,7 +29,7 @@ jobs:
       # here, so it runs before anything is pushed, never after.
       - uses: oven-sh/setup-bun@v2
         with:
-          bun-version: '1.4.0'
+          bun-version: '1.4.4'
       - run: bun test
 
       - uses: docker/setup-buildx-action@v4

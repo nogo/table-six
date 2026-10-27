@@ -1,7 +1,7 @@
 # Table Six has no runtime dependencies and no build step, so the image is the
 # Bun runtime plus the source as it lies in the repo. Bun needs a 64-bit OS:
 # amd64 or arm64, there is no armv7 build.
-FROM oven/bun:1.4.0-slim
+FROM oven/bun:1.4.4-slim
 
 WORKDIR /app
 COPY package.json tsconfig.json ./
