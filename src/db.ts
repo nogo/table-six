@@ -10,6 +10,10 @@ export type Effort = 'kurz' | 'normal' | 'entspannt';
 /** Ascending: an evening blows the day when its hardest item ranks higher. */
 export const EFFORT_ORDER: Effort[] = ['kurz', 'normal', 'entspannt'];
 
+/** The one rule for "too much": the item asks for a higher level than the evening has. */
+export const asksTooMuch = (item: { effort: Effort }, level: Effort): boolean =>
+  EFFORT_ORDER.indexOf(item.effort) > EFFORT_ORDER.indexOf(level);
+
 /**
  * What an item contributes to a plate. `whole` is an evening on its own —
  * Lasagne, Reste, kaltes Abendbrot — and wants nothing beside it. Null until

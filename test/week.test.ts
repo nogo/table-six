@@ -38,13 +38,13 @@ test('the effort grid recurs by weekday, not by date', () => {
 test('an evening blows a short day as soon as one item asks for more', () => {
   setWeekdayEffort(3, 'kurz');
   addToPlan(WEDNESDAY, createItem('Nudeln', 'kurz').id);
-  expect(buildWeek(MONDAY).days[2]!.overEffort).toBe(false);
+  expect(buildWeek(MONDAY).days[2]!.tooMuch).toEqual([]);
 
   addToPlan(WEDNESDAY, createItem('Lasagne', 'entspannt').id);
-  expect(buildWeek(MONDAY).days[2]!.overEffort).toBe(true);
+  expect(buildWeek(MONDAY).days[2]!.tooMuch).toEqual(['Lasagne']);
 });
 
 test('an empty evening is not a warning', () => {
   setWeekdayEffort(3, 'kurz');
-  expect(buildWeek(MONDAY).days[2]!.overEffort).toBe(false);
+  expect(buildWeek(MONDAY).days[2]!.tooMuch).toEqual([]);
 });

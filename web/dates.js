@@ -43,6 +43,3 @@ export function range(start, end) {
     : `${dayOfMonth(start)}.${month(start)}.`;
   return `${from}–${dayOfMonth(end)}.${month(end)}.`;
 }
-
-/** Ascending — the same order the server uses to judge an evening. */
-export const EFFORT_ORDER = ['kurz', 'normal', 'entspannt'];

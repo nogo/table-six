@@ -32,7 +32,7 @@ class WeekBoard extends AurilElement {
           ${isToday
             ? html`<span class="effort today-mark">${t('board.today')}</span>`
             : html`<span class="effort">${t(`level.${day.effort}`)}</span>`}
-          ${day.overEffort && html`<span class="mark warn">⚠︎</span>`}
+          ${day.tooMuch.length > 0 && html`<span class="mark warn">⚠︎</span>`}
         </span>
         <span class="plate ${day.items.length ? '' : 'empty'}">
           ${day.items.length ? day.items.map((item) => item.name).join(' · ') : '–'}

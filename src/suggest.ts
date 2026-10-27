@@ -5,8 +5,8 @@
 // Reasons travel structured. The German words for them live in the frontend,
 // like every other word the family reads.
 import {
-  EFFORT_ORDER,
   addToPlan,
+  asksTooMuch,
   effortGrid,
   listItems,
   planBetween,
@@ -182,7 +182,7 @@ function weigh(item: Item, evening: Evening, pairing?: Pairing, rhythm?: Rhythm)
     reason = { axis: 'retired' };
   }
 
-  if (EFFORT_ORDER.indexOf(item.effort) > EFFORT_ORDER.indexOf(evening.effort)) {
+  if (asksTooMuch(item, evening.effort)) {
     score += WEIGHT.tooMuch;
     reason ??= { axis: 'effort', effort: evening.effort };
   }

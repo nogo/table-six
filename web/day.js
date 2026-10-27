@@ -3,9 +3,9 @@
 import { AurilElement, html } from './auril/index.js';
 import { addToPlan, createItem, fillDay, removeFromPlan, setWeekdayEffort } from './api.js';
 import { reload, store, write } from './app.js';
-import { EFFORT_ORDER, WEEKDAYS, dayOfMonth, weekday } from './dates.js';
+import { WEEKDAYS, dayOfMonth, weekday } from './dates.js';
 import { t } from './i18n.js';
-import { componentName } from './items.js';
+import { EFFORT_ORDER, componentName } from './items.js';
 
 const ROWS = 8; // plate and suggestions together — as many as fit without scrolling
 
@@ -170,7 +170,6 @@ class DayFocus extends AurilElement {
     const canFill = day.items.length === 0 && ranked.length > 0 && !query;
     // A full plate gives room back.
     const suggestions = found.slice(0, Math.max(3, ROWS - day.items.length - (canFill ? 1 : 0)));
-    const tooMuch = day.items.filter((/** @type {any} */ item) => EFFORT_ORDER.indexOf(item.effort) > EFFORT_ORDER.indexOf(day.effort));
 
     return html`
       <header class="head column wide">
@@ -183,10 +182,10 @@ class DayFocus extends AurilElement {
           <span class="grow"></span>
           <a class="action" href="/">${t('nav.week')}</a>
         </div>
-        ${tooMuch.length > 0 && html`
+        ${day.tooMuch.length > 0 && html`
           <p class="hint warn">${t('day.tooMuch', {
             evening: t(`evening.${day.effort}`),
-            items: tooMuch.map((/** @type {any} */ i) => i.name).join(', '),
+            items: day.tooMuch.join(', '),
           })}</p>`}
         ${store.state.unsaved && html`<p class="hint warn">${t('write.unsaved')}</p>`}
       </header>

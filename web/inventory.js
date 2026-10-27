@@ -4,9 +4,8 @@
 import { AurilElement, html } from './auril/index.js';
 import { createItem, deleteItem, patchItem } from './api.js';
 import { loadItems, store, write } from './app.js';
-import { EFFORT_ORDER } from './dates.js';
 import { t } from './i18n.js';
-import { COMPONENT_ORDER, componentName, effortName } from './items.js';
+import { COMPONENT_ORDER, EFFORT_ORDER, componentName, effortName } from './items.js';
 
 /** @typedef {{ id: number, name: string }} Intent an item a pending action refers to */
 

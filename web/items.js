@@ -1,5 +1,5 @@
-// The item vocabulary: what a component is called on screen and the order the
-// curation button cycles through. The words come from `i18n.js`; the data
+// The item vocabulary: what a component and a level are called on screen and
+// the order their buttons cycle through. The words come from `i18n.js`; the data
 // stays English.
 import { t } from './i18n.js';
 
@@ -9,6 +9,9 @@ import { t } from './i18n.js';
  * @type {(string | null)[]}
  */
 export const COMPONENT_ORDER = [null, 'base', 'vegetable', 'protein', 'extra', 'whole'];
+
+/** The order the level buttons cycle through, lowest first — the server's order too. */
+export const EFFORT_ORDER = ['kurz', 'normal', 'entspannt'];
 
 /** @param {string | null} component */
 export const componentName = (component) => t(component ? `component.${component}` : 'component.none');
